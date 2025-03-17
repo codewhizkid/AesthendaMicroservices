@@ -1,8 +1,7 @@
-const { ApolloServer } = require('apollo-server');
-const { buildFederatedSchema } = require('@apollo/federation');
+const { ApolloServer, gql } = require('apollo-server');
 
 // Define a simple schema
-const typeDefs = `
+const typeDefs = gql`
   type Query {
     gatewayHealth: String
   }
@@ -17,10 +16,8 @@ const resolvers = {
 
 // Initialize Apollo Server
 const server = new ApolloServer({
-  schema: buildFederatedSchema([{ typeDefs, resolvers }]),
-  context: ({ req }) => {
-    return { headers: req.headers };
-  }
+  typeDefs,
+  resolvers
 });
 
 // Start the server
