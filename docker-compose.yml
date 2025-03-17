@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "4000:4000"
+    depends_on:
+      - user-service
+      - appointment-service
+      - notification-service
+    networks:
+      - aesthenda-net
+
+  user-service:
+    build: ./services/user-service
+    ports:
+      - "5001:5001"
+    depends_on:
+      - mongo-user
+    networks:
+      - aesthenda-net
+
+  appointment-service:
+    build: ./services/appointment-service
+    ports:
+      - "5002:5002"
+    depends_on:
+      - mongo-appointment
+    networks:
+      - aesthenda-net
+
+  notification-service:
+    build: ./services/notification-service
+    ports:
+      - "5003:5003"
+    depends_on:
+      - rabbitmq
+    networks:
+      - aesthenda-net
+
+  payment-service:
+    build: ./services/payment-service
+    ports:
+      - "5004:5004"
+    depends_on:
+      - mongo-payment
+    networks:
+      - aesthenda-net
+
+  mongo-user:
+    image: mongo
+    container_name: mongo-user
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-user-data:/data/db
+    networks:
+      - aesthenda-net
+
+  mongo-appointment:
+    image: mongo
+    container_name: mongo-appointment
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo-appointment-data:/data/db
+    networks:
+      - aesthenda-net
+
+  mongo-payment:
+    image: mongo
+    container_name: mongo-payment
+    ports:
+      - "27019:27017"
+    volumes:
+      - mongo-payment-data:/data/db
+    networks:
+      - aesthenda-net
+
+  rabbitmq:
+    image: "rabbitmq:3-management"
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - aesthenda-net
+
+volumes:
+  mongo-user-data:
+  mongo-appointment-data:
+  mongo-payment-data:
+
+networks:
+  aesthenda-net:
+    driver: bridge
