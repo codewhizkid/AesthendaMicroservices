@@ -35,3 +35,4 @@ docker-compose up --build
 - Implement user authentication with OAuth 2.0 & JWT.
 - Add real-time booking availability checks.
 - Expand RabbitMQ messaging to support appointment confirmations.
+# AesthendaMicroservices
