@@ -9,7 +9,23 @@ const typeDefs = gql`
     name: String!
     email: String!
     role: Role!
+    oauthProviders: OAuthProviders
     createdAt: String
+  }
+
+  """
+  OAuth provider information for a user
+  """
+  type OAuthProviders {
+    google: OAuthProvider
+    facebook: OAuthProvider
+  }
+
+  """
+  Information about a specific OAuth provider for a user
+  """
+  type OAuthProvider {
+    id: String
   }
 
   """
@@ -19,6 +35,14 @@ const typeDefs = gql`
     client
     stylist
     admin
+  }
+
+  """
+  Available OAuth providers
+  """
+  enum OAuthProviderType {
+    google
+    facebook
   }
 
   """
@@ -46,6 +70,15 @@ const typeDefs = gql`
     email: String!
     password: String!
     role: Role
+  }
+
+  """
+  Input type for OAuth authentication
+  """
+  input OAuthInput {
+    provider: OAuthProviderType!
+    token: String!
+    profile: String! # JSON stringified profile data
   }
 
   type Query {
@@ -80,6 +113,21 @@ const typeDefs = gql`
     Login an existing user
     """
     login(email: String!, password: String!): AuthResponse!
+
+    """
+    Authenticate with OAuth
+    """
+    oauthLogin(input: OAuthInput!): AuthResponse!
+
+    """
+    Connect an OAuth provider to an existing account (must be authenticated)
+    """
+    connectOAuthProvider(input: OAuthInput!): User!
+
+    """
+    Disconnect an OAuth provider from an account (must be authenticated)
+    """
+    disconnectOAuthProvider(provider: OAuthProviderType!): User!
 
     """
     Refresh an expired access token using a refresh token

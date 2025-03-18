@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Callback - Aesthenda</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f8f9fa;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+            margin-bottom: 1rem;
+        }
+        .card {
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card p-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <h2 id="statusText">Processing authentication...</h2>
+            <p id="message">Please wait while we complete your login.</p>
+            <div id="redirectInfo" class="mt-3" style="display: none;">
+                <p>Redirecting you to the application in <span id="countdown">3</span> seconds...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Function to handle the OAuth callback
+        function handleCallback() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+            const refreshToken = urlParams.get('refreshToken');
+            const error = urlParams.get('error');
+            
+            const statusText = document.getElementById('statusText');
+            const message = document.getElementById('message');
+            const redirectInfo = document.getElementById('redirectInfo');
+            const countdown = document.getElementById('countdown');
+            
+            if (error) {
+                // Handle error
+                statusText.textContent = 'Authentication Failed';
+                statusText.classList.add('text-danger');
+                message.textContent = `Error: ${error}. Please try again.`;
+                document.querySelector('.spinner-border').style.display = 'none';
+                
+                // Show redirect info
+                redirectInfo.style.display = 'block';
+                startCountdown(countdown, '/auth.html');
+            } 
+            else if (token && refreshToken) {
+                // Store tokens in localStorage
+                localStorage.setItem('accessToken', token);
+                localStorage.setItem('refreshToken', refreshToken);
+                
+                // Update UI
+                statusText.textContent = 'Authentication Successful';
+                statusText.classList.add('text-success');
+                message.textContent = 'You have been successfully authenticated.';
+                document.querySelector('.spinner-border').style.display = 'none';
+                
+                // Show redirect info
+                redirectInfo.style.display = 'block';
+                startCountdown(countdown, '/auth.html');
+            } 
+            else {
+                // No valid parameters
+                statusText.textContent = 'Invalid Request';
+                statusText.classList.add('text-warning');
+                message.textContent = 'No valid authentication information found.';
+                document.querySelector('.spinner-border').style.display = 'none';
+                
+                // Show redirect info
+                redirectInfo.style.display = 'block';
+                startCountdown(countdown, '/auth.html');
+            }
+        }
+        
+        // Function to start countdown and redirect
+        function startCountdown(element, destination) {
+            let count = 3;
+            element.textContent = count;
+            
+            const interval = setInterval(() => {
+                count--;
+                element.textContent = count;
+                
+                if (count <= 0) {
+                    clearInterval(interval);
+                    window.location.href = destination;
+                }
+            }, 1000);
+        }
+        
+        // Run when page loads
+        document.addEventListener('DOMContentLoaded', handleCallback);
+    </script>
+</body>
+</html> 

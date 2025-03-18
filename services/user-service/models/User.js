@@ -18,7 +18,10 @@ const UserSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true,
+    required: function() {
+      // Password is required only if the user doesn't use OAuth
+      return !this.oauthProviders || Object.keys(this.oauthProviders).length === 0;
+    },
     minlength: 6,
     select: false // Don't return password by default in queries
   },
@@ -37,6 +40,18 @@ const UserSchema = new mongoose.Schema({
       required: true
     }
   }],
+  oauthProviders: {
+    google: {
+      id: String,
+      token: String,
+      profile: mongoose.Schema.Types.Mixed
+    },
+    facebook: {
+      id: String,
+      token: String,
+      profile: mongoose.Schema.Types.Mixed
+    }
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -45,8 +60,8 @@ const UserSchema = new mongoose.Schema({
 
 // Hash password before saving
 UserSchema.pre('save', async function(next) {
-  // Only hash the password if it's modified (or new)
-  if (!this.isModified('password')) {
+  // Only hash the password if it's modified (or new) and exists
+  if (!this.isModified('password') || !this.password) {
     return next();
   }
   
@@ -63,6 +78,10 @@ UserSchema.pre('save', async function(next) {
 
 // Method to compare password
 UserSchema.methods.comparePassword = async function(candidatePassword) {
+  // If user doesn't have a password (OAuth user), return false
+  if (!this.password) {
+    return false;
+  }
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
@@ -133,4 +152,76 @@ UserSchema.methods.removeAllRefreshTokens = async function() {
   await this.save();
 };
 
-module.exports = mongoose.model('User', UserSchema); 
+/**
+ * Find or create a user from OAuth profile data
+ * @param {String} provider - The OAuth provider ('google' or 'facebook')
+ * @param {Object} profile - The OAuth profile data
+ * @param {String} token - The OAuth access token
+ * @returns {Promise<Object>} - The user object and a boolean indicating if it was created
+ */
+UserSchema.statics.findOrCreateFromOAuth = async function(provider, profile, token) {
+  if (!['google', 'facebook'].includes(provider)) {
+    throw new Error('Invalid OAuth provider');
+  }
+
+  // Try to find user by provider ID
+  let user = await this.findOne({
+    [`oauthProviders.${provider}.id`]: profile.id
+  });
+
+  // If user exists with this OAuth ID, update the token and return
+  if (user) {
+    user.oauthProviders[provider].token = token;
+    user.oauthProviders[provider].profile = profile;
+    await user.save();
+    return { user, created: false };
+  }
+
+  // If no user with this OAuth ID, try to find by email
+  if (profile.email) {
+    user = await this.findOne({ email: profile.email });
+    
+    // If found by email, add OAuth provider info
+    if (user) {
+      if (!user.oauthProviders) {
+        user.oauthProviders = {};
+      }
+      
+      user.oauthProviders[provider] = {
+        id: profile.id,
+        token: token,
+        profile: profile
+      };
+      
+      await user.save();
+      return { user, created: false };
+    }
+  }
+
+  // No user found, create a new one
+  const name = profile.displayName || 
+               profile.name || 
+               (profile.firstName && profile.lastName 
+                ? `${profile.firstName} ${profile.lastName}` 
+                : 'User');
+  
+  const email = profile.email || `${profile.id}@${provider}.user`;
+  
+  const newUser = new this({
+    name,
+    email,
+    role: 'client', // Default role for OAuth users
+    oauthProviders: {
+      [provider]: {
+        id: profile.id,
+        token,
+        profile
+      }
+    }
+  });
+
+  await newUser.save();
+  return { user: newUser, created: true };
+};
+
+module.exports = mongoose.model('User', UserSchema);

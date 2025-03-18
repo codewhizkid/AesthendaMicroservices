@@ -119,6 +119,124 @@ const authResolvers = {
       }
     },
 
+    // OAuth login
+    oauthLogin: async (_, { input }) => {
+      const { provider, token, profile } = input;
+      
+      try {
+        // Parse the profile data from string to JSON
+        const profileData = JSON.parse(profile);
+        
+        // Find or create user from OAuth data
+        const { user, created } = await User.findOrCreateFromOAuth(provider, profileData, token);
+        
+        // Generate JWT token
+        const jwtToken = user.generateAuthToken();
+        
+        // Generate refresh token
+        const refreshToken = await user.generateRefreshToken();
+        
+        return {
+          token: jwtToken,
+          refreshToken,
+          user: {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role
+          }
+        };
+      } catch (error) {
+        console.error('OAuth login error:', error);
+        throw new Error(`Failed to authenticate with ${provider}: ${error.message}`);
+      }
+    },
+
+    // Connect OAuth provider to existing account
+    connectOAuthProvider: async (_, { input }, { user }) => {
+      if (!user) {
+        throw new AuthenticationError('Not authenticated');
+      }
+      
+      const { provider, token, profile } = input;
+      
+      try {
+        // Parse the profile data
+        const profileData = JSON.parse(profile);
+        
+        // Check if another user already has this OAuth account
+        const existingUser = await User.findOne({
+          [`oauthProviders.${provider}.id`]: profileData.id
+        });
+        
+        if (existingUser && existingUser._id.toString() !== user.id) {
+          throw new UserInputError('This OAuth account is already connected to another user');
+        }
+        
+        // Find current user
+        const currentUser = await User.findById(user.id);
+        if (!currentUser) {
+          throw new Error('User not found');
+        }
+        
+        // Initialize oauthProviders if not exists
+        if (!currentUser.oauthProviders) {
+          currentUser.oauthProviders = {};
+        }
+        
+        // Add or update OAuth provider
+        currentUser.oauthProviders[provider] = {
+          id: profileData.id,
+          token,
+          profile: profileData
+        };
+        
+        await currentUser.save();
+        return currentUser;
+      } catch (error) {
+        console.error('Connect OAuth error:', error);
+        throw new Error(`Failed to connect ${provider} account: ${error.message}`);
+      }
+    },
+
+    // Disconnect OAuth provider
+    disconnectOAuthProvider: async (_, { provider }, { user }) => {
+      if (!user) {
+        throw new AuthenticationError('Not authenticated');
+      }
+      
+      try {
+        const currentUser = await User.findById(user.id);
+        if (!currentUser) {
+          throw new Error('User not found');
+        }
+        
+        // Check if user has a password or other OAuth providers
+        const hasPassword = Boolean(await User.findById(user.id).select('+password').then(u => u.password));
+        const otherProviders = currentUser.oauthProviders ? 
+          Object.keys(currentUser.oauthProviders).filter(p => p !== provider && currentUser.oauthProviders[p]) : 
+          [];
+        
+        // Prevent removing the last authentication method
+        if (!hasPassword && otherProviders.length === 0) {
+          throw new UserInputError(
+            'Cannot disconnect the only authentication method. Please add a password or connect another provider first.'
+          );
+        }
+        
+        // Remove provider
+        if (currentUser.oauthProviders && currentUser.oauthProviders[provider]) {
+          delete currentUser.oauthProviders[provider];
+          await currentUser.save();
+        }
+        
+        return currentUser;
+      } catch (error) {
+        console.error('Disconnect OAuth error:', error);
+        throw new Error(`Failed to disconnect ${provider} account: ${error.message}`);
+      }
+    },
+
     // Refresh access token
     refreshToken: async (_, { refreshToken }) => {
       try {

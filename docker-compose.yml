@@ -9,8 +9,11 @@ services:
       - user-service
       - appointment-service
       - notification-service
+      - redis
     networks:
       - aesthenda-net
+    environment:
+      - REDIS_URL=redis://redis:6379
 
   user-service:
     build: ./services/user-service
@@ -87,10 +90,23 @@ services:
     networks:
       - aesthenda-net
 
+  redis:
+    image: "redis:6-alpine"
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    restart: always
+    networks:
+      - aesthenda-net
+
 volumes:
   mongo-user-data:
   mongo-appointment-data:
   mongo-payment-data:
+  redis-data:
 
 networks:
   aesthenda-net:
