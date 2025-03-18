@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aesthenda Microservices Client</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .card {
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        #response {
+            white-space: pre-wrap;
+            background-color: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            height: 300px;
+            overflow-y: auto;
+        }
+        .query-section {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #3f51b5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="my-4 text-center">Aesthenda Microservices Client</h1>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">GraphQL Query</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="queryInput" class="form-label">Enter your GraphQL query:</label>
+                            <textarea class="form-control" id="queryInput" rows="8">{
+  gatewayHealth
+}</textarea>
+                        </div>
+                        <button class="btn btn-primary" onclick="executeQuery()">Execute Query</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="card-title mb-0">Sample Queries</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-secondary" onclick="loadSampleQuery('health')">Health Check</button>
+                            <button class="btn btn-outline-secondary" onclick="loadSampleQuery('introspection')">Introspection</button>
+                            <button class="btn btn-outline-secondary" onclick="loadSampleQuery('appointment')">Create Appointment</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="card-title mb-0">Response</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="response">// Response will appear here</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample queries
+        const sampleQueries = {
+            health: `{
+  gatewayHealth
+}`,
+            introspection: `{
+  __schema {
+    types {
+      name
+      kind
+      description
+    }
+  }
+}`,
+            appointment: `mutation {
+  createAppointment(
+    userId: "1", 
+    serviceType: "Haircut", 
+    date: "2025-04-01", 
+    time: "10:00"
+  ) {
+    id
+    userId
+    serviceType
+    date
+    time
+    status
+  }
+}`
+        };
+
+        function loadSampleQuery(queryName) {
+            document.getElementById('queryInput').value = sampleQueries[queryName];
+        }
+
+        async function executeQuery() {
+            const responseElement = document.getElementById('response');
+            responseElement.textContent = "Loading...";
+            
+            try {
+                const query = document.getElementById('queryInput').value;
+                const response = await fetch('http://localhost:4000', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query })
+                });
+                
+                const data = await response.json();
+                responseElement.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                responseElement.textContent = `Error: ${error.message}`;
+            }
+        }
+    </script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 
