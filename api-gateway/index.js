@@ -54,6 +54,11 @@ const typeDefs = gql`
     success: Boolean!
   }
 
+  type PasswordResetResponse {
+    success: Boolean!
+    message: String
+  }
+
   input RegisterInput {
     name: String!
     email: String!
@@ -64,6 +69,7 @@ const typeDefs = gql`
   type Query {
     gatewayHealth: String
     me: User
+    verifyResetToken(token: String!): PasswordResetResponse
   }
 
   type Mutation {
@@ -72,6 +78,10 @@ const typeDefs = gql`
     refreshToken(refreshToken: String!): RefreshTokenResponse
     logout(refreshToken: String!): Boolean
     logoutAll: Boolean
+    requestPasswordReset(email: String!): PasswordResetResponse
+    resetPassword(token: String!, newPassword: String!): PasswordResetResponse
+    verifyEmail(token: String!): PasswordResetResponse
+    resendVerification(email: String!): PasswordResetResponse
   }
 `;
 
@@ -319,6 +329,36 @@ const resolvers = {
         console.error('Error fetching user profile:', error);
         throw new Error('Failed to fetch user profile');
       }
+    },
+    verifyResetToken: async (_, { token }) => {
+      try {
+        const query = `
+          query {
+            verifyResetToken(token: "${token}") {
+              success
+              message
+            }
+          }
+        `;
+
+        const response = await fetch('http://user-service:5001', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ query })
+        });
+
+        const data = await response.json();
+        if (data.errors) {
+          throw new Error(data.errors[0].message);
+        }
+        
+        return data.data.verifyResetToken;
+      } catch (error) {
+        console.error('Error verifying reset token:', error);
+        throw new Error('Failed to verify reset token');
+      }
     }
   },
   Mutation: {
@@ -487,6 +527,126 @@ const resolvers = {
       } catch (error) {
         console.error('Error logging out from all devices:', error);
         throw new Error('Failed to logout from all devices');
+      }
+    },
+    requestPasswordReset: async (_, { email }) => {
+      try {
+        const mutation = `
+          mutation {
+            requestPasswordReset(email: "${email}") {
+              success
+              message
+            }
+          }
+        `;
+
+        const response = await fetch('http://user-service:5001', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ query: mutation })
+        });
+
+        const data = await response.json();
+        if (data.errors) {
+          throw new Error(data.errors[0].message);
+        }
+        
+        return data.data.requestPasswordReset;
+      } catch (error) {
+        console.error('Error requesting password reset:', error);
+        throw new Error('Failed to request password reset');
+      }
+    },
+    resetPassword: async (_, { token, newPassword }) => {
+      try {
+        const mutation = `
+          mutation {
+            resetPassword(token: "${token}", newPassword: "${newPassword}") {
+              success
+              message
+            }
+          }
+        `;
+
+        const response = await fetch('http://user-service:5001', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ query: mutation })
+        });
+
+        const data = await response.json();
+        if (data.errors) {
+          throw new Error(data.errors[0].message);
+        }
+        
+        return data.data.resetPassword;
+      } catch (error) {
+        console.error('Error resetting password:', error);
+        throw new Error('Failed to reset password');
+      }
+    },
+    verifyEmail: async (_, { token }) => {
+      try {
+        const mutation = `
+          mutation {
+            verifyEmail(token: "${token}") {
+              success
+              message
+            }
+          }
+        `;
+
+        const response = await fetch('http://user-service:5001', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ query: mutation })
+        });
+
+        const data = await response.json();
+        if (data.errors) {
+          throw new Error(data.errors[0].message);
+        }
+        
+        return data.data.verifyEmail;
+      } catch (error) {
+        console.error('Error verifying email:', error);
+        throw new Error('Failed to verify email');
+      }
+    },
+    resendVerification: async (_, { email }) => {
+      try {
+        const mutation = `
+          mutation {
+            resendVerification(email: "${email}") {
+              success
+              message
+            }
+          }
+        `;
+
+        const response = await fetch('http://user-service:5001', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ query: mutation })
+        });
+
+        const data = await response.json();
+        if (data.errors) {
+          throw new Error(data.errors[0].message);
+        }
+        
+        return data.data.resendVerification;
+      } catch (error) {
+        console.error('Error resending verification email:', error);
+        throw new Error('Failed to resend verification email');
       }
     }
   }

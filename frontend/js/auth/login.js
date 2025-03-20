@@ -1,5 +1,5 @@
 // Login form handling
-import { executeQuery } from '../../graphql-client.js';
+import { executeQuery, executeMutation } from '../../graphql-client.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
@@ -41,6 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 mutation Login($email: String!, $password: String!) {
                     login(email: $email, password: $password) {
                         token
+                        refreshToken
                         user {
                             id
                             email
@@ -54,26 +55,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             `;
 
-            const response = await executeQuery(loginMutation, { email, password });
+            const response = await executeMutation(loginMutation, { email, password });
 
             // Reset button state
             submitBtn.disabled = false;
             submitBtn.innerHTML = originalBtnText;
 
-            if (response.errors) {
-                throw new Error(response.errors[0].message || 'Login failed');
+            if (!response.success) {
+                // Handle errors from the standardized error format
+                if (response.errors && response.errors.length > 0) {
+                    showAlert(response.errors[0].message, 'error');
+                } else {
+                    showAlert('Login failed. Please try again.', 'error');
+                }
+                return;
             }
 
             if (response.data.login.success) {
-                // Save authentication token
+                // Save authentication tokens
                 const token = response.data.login.token;
+                const refreshToken = response.data.login.refreshToken;
                 const user = response.data.login.user;
                 
                 if (rememberMe) {
-                    localStorage.setItem('authToken', token);
+                    localStorage.setItem('token', token);
+                    localStorage.setItem('refreshToken', refreshToken);
                     localStorage.setItem('user', JSON.stringify(user));
                 } else {
-                    sessionStorage.setItem('authToken', token);
+                    sessionStorage.setItem('token', token);
+                    sessionStorage.setItem('refreshToken', refreshToken);
                     sessionStorage.setItem('user', JSON.stringify(user));
                 }
 

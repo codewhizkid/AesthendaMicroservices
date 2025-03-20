@@ -1,5 +1,5 @@
 // Registration form handling
-import { executeQuery } from '../../graphql-client.js';
+import { executeMutation } from '../../graphql-client.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const registerForm = document.getElementById('registerForm');
@@ -53,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 mutation Register($input: RegisterInput!) {
                     register(input: $input) {
                         token
+                        refreshToken
                         user {
                             id
                             email
@@ -74,23 +75,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             };
 
-            const response = await executeQuery(registerMutation, variables);
+            const response = await executeMutation(registerMutation, variables);
 
             // Reset button state
             submitBtn.disabled = false;
             submitBtn.innerHTML = originalBtnText;
 
-            if (response.errors) {
+            if (!response.success) {
                 // Check for duplicate email error and provide user-friendly message
-                if (response.errors[0].message.includes('email already exists')) {
-                    showAlert('This email is already registered. Please login instead.', 'error');
+                if (response.errors && response.errors.length > 0) {
+                    const errorMsg = response.errors[0].message;
+                    if (errorMsg.includes('email already exists')) {
+                        showAlert('This email is already registered. Please login instead.', 'error');
+                    } else {
+                        showAlert(errorMsg, 'error');
+                    }
                 } else {
-                    throw new Error(response.errors[0].message || 'Registration failed');
+                    showAlert('Registration failed. Please try again.', 'error');
                 }
                 return;
             }
 
             if (response.data.register.success) {
+                // Store tokens
+                const token = response.data.register.token;
+                const refreshToken = response.data.register.refreshToken;
+                const user = response.data.register.user;
+                
+                // Store in localStorage to persist
+                localStorage.setItem('token', token);
+                localStorage.setItem('refreshToken', refreshToken);
+                localStorage.setItem('user', JSON.stringify(user));
+                
                 // Save user email for verification resending if needed
                 localStorage.setItem('userEmail', email);
                 
