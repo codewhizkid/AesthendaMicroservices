@@ -3,121 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aesthenda Microservices Client</title>
+    <title>Aesthenda - Luxury Spa & Salon Experience</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        #response {
-            white-space: pre-wrap;
-            font-family: monospace;
-            height: 300px;
-            overflow-y: auto;
-        }
-    </style>
-</head>
-<body class="bg-gray-50">
-    <div class="container mx-auto px-4 py-8 max-w-6xl">
-        <h1 class="text-3xl font-bold text-center text-indigo-600 mb-8">Aesthenda Microservices Client</h1>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-                <div class="bg-white rounded-lg shadow-md mb-6">
-                    <div class="bg-blue-600 text-white px-4 py-3 rounded-t-lg">
-                        <h5 class="font-medium">GraphQL Query</h5>
-                    </div>
-                    <div class="p-4">
-                        <div class="mb-4">
-                            <label for="queryInput" class="block text-sm font-medium text-gray-700 mb-2">Enter your GraphQL query:</label>
-                            <textarea class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" id="queryInput" rows="8">{
-  gatewayHealth
-}</textarea>
-                        </div>
-                        <button class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" onclick="executeQuery()">Execute Query</button>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-lg shadow-md">
-                    <div class="bg-green-600 text-white px-4 py-3 rounded-t-lg">
-                        <h5 class="font-medium">Sample Queries</h5>
-                    </div>
-                    <div class="p-4">
-                        <div class="grid gap-2">
-                            <button class="border border-gray-300 hover:bg-gray-100 text-gray-700 font-medium py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-gray-500" onclick="loadSampleQuery('health')">Health Check</button>
-                            <button class="border border-gray-300 hover:bg-gray-100 text-gray-700 font-medium py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-gray-500" onclick="loadSampleQuery('introspection')">Introspection</button>
-                            <button class="border border-gray-300 hover:bg-gray-100 text-gray-700 font-medium py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-gray-500" onclick="loadSampleQuery('appointment')">Create Appointment</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div>
-                <div class="bg-white rounded-lg shadow-md">
-                    <div class="bg-cyan-600 text-white px-4 py-3 rounded-t-lg">
-                        <h5 class="font-medium">Response</h5>
-                    </div>
-                    <div class="p-4">
-                        <div id="response" class="bg-gray-100 p-4 rounded text-sm">// Response will appear here</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <script>
-        // Sample queries
-        const sampleQueries = {
-            health: `{
-  gatewayHealth
-}`,
-            introspection: `{
-  __schema {
-    types {
-      name
-      kind
-      description
-    }
-  }
-}`,
-            appointment: `mutation {
-  createAppointment(
-    userId: "1", 
-    serviceType: "Haircut", 
-    date: "2025-04-01", 
-    time: "10:00"
-  ) {
-    id
-    userId
-    serviceType
-    date
-    time
-    status
-  }
-}`
-        };
-
-        function loadSampleQuery(queryName) {
-            document.getElementById('queryInput').value = sampleQueries[queryName];
-        }
-
-        async function executeQuery() {
-            const responseElement = document.getElementById('response');
-            responseElement.textContent = "Loading...";
-            
-            try {
-                const query = document.getElementById('queryInput').value;
-                const response = await fetch('http://localhost:4000', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ query })
-                });
-                
-                const data = await response.json();
-                responseElement.textContent = JSON.stringify(data, null, 2);
-            } catch (error) {
-                responseElement.textContent = `Error: ${error.message}`;
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'spa-nude': '#E6DACE',
+                        'spa-beige': '#D8C3A5',
+                        'spa-brown': '#8E8D8A',
+                        'spa-olive': '#6B705C',
+                        'spa-dark': '#3F4238',
+                    }
+                },
+                fontFamily: {
+                    'serif': ['Garamond', 'Georgia', 'serif'],
+                    'sans': ['Montserrat', 'Arial', 'sans-serif'],
+                }
             }
         }
     </script>
+    <style>
+        body {
+            background-color: #F8F4EF;
+            font-family: 'Montserrat', Arial, sans-serif;
+        }
+        .hero-pattern {
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23d8c3a5' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E");
+        }
+    </style>
+</head>
+<body class="hero-pattern min-h-screen flex flex-col">
+    <main class="flex-grow flex flex-col items-center justify-center px-4 py-12">
+        <div class="w-full max-w-4xl mx-auto bg-white bg-opacity-90 rounded-xl shadow-lg overflow-hidden flex flex-col items-center px-8 py-16">
+            <div class="mb-8 text-center">
+                <h1 class="font-serif text-6xl md:text-7xl font-bold text-spa-dark tracking-wide mb-4">Aesthenda</h1>
+                <p class="text-spa-brown text-xl md:text-2xl font-light">Luxury Spa & Salon Experience</p>
+            </div>
+            
+            <div class="mt-8 w-full max-w-md flex flex-col md:flex-row justify-center gap-4">
+                <a href="/login.html" class="inline-flex justify-center items-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-spa-olive hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-spa-olive transition-colors w-full md:w-auto text-center">
+                    Login
+                </a>
+                <a href="/register.html" class="inline-flex justify-center items-center px-8 py-3 border border-spa-beige text-base font-medium rounded-md text-spa-dark bg-spa-nude hover:bg-spa-beige focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-spa-beige transition-colors w-full md:w-auto text-center">
+                    Register
+                </a>
+            </div>
+        </div>
+    </main>
+    
+    <footer class="bg-white bg-opacity-80 py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center text-spa-brown text-sm">
+                <p>&copy; 2025 Aesthenda Spa & Salon. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
 </body>
 </html> 

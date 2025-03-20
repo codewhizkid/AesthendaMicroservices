@@ -1,7 +1,10 @@
 const express = require('express');
 const path = require('path');
+const http = require('http');
 const app = express();
 const PORT = 8080;
+const API_GATEWAY_HOST = process.env.API_GATEWAY_HOST || 'localhost';
+const API_GATEWAY_PORT = process.env.API_GATEWAY_PORT || 4000;
 
 // Serve static files from the current directory and dist directory
 app.use(express.static(__dirname));
@@ -12,9 +15,38 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Route for the authentication page
+// Authentication routes
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'login.html'));
+});
+
+app.get('/register', (req, res) => {
+  res.sendFile(path.join(__dirname, 'register.html'));
+});
+
+app.get('/reset-password', (req, res) => {
+  res.sendFile(path.join(__dirname, 'reset-password.html'));
+});
+
+app.get('/reset-password-confirm', (req, res) => {
+  res.sendFile(path.join(__dirname, 'reset-password-confirm.html'));
+});
+
+app.get('/verify-email', (req, res) => {
+  res.sendFile(path.join(__dirname, 'verify-email.html'));
+});
+
+// OAuth proxy routes - forward to API Gateway
+app.get('/api/auth/:provider', (req, res) => {
+  const provider = req.params.provider;
+  // Redirect to API gateway OAuth endpoint
+  res.redirect(`http://${API_GATEWAY_HOST}:${API_GATEWAY_PORT}/auth/${provider}`);
+});
+
+// Legacy routes for backward compatibility
 app.get('/auth', (req, res) => {
-  res.sendFile(path.join(__dirname, 'auth.html'));
+  console.warn('WARNING: The /auth route is deprecated. Please use /login or /register instead.');
+  res.redirect('/login');
 });
 
 // Route for the OAuth callback page
@@ -25,6 +57,9 @@ app.get('/auth-callback', (req, res) => {
 // Start the server
 app.listen(PORT, () => {
   console.log(`Frontend client is running at http://localhost:${PORT}`);
-  console.log(`Authentication page available at http://localhost:${PORT}/auth`);
-  console.log(`OAuth callback page available at http://localhost:${PORT}/auth-callback`);
+  console.log(`Login page available at http://localhost:${PORT}/login`);
+  console.log(`Registration page available at http://localhost:${PORT}/register`);
+  console.log(`Password reset page available at http://localhost:${PORT}/reset-password`);
+  console.log(`Email verification page available at http://localhost:${PORT}/verify-email`);
+  console.log(`OAuth endpoints are proxied to http://${API_GATEWAY_HOST}:${API_GATEWAY_PORT}`);
 });

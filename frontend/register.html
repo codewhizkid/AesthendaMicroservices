@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account - Aesthenda</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'spa-nude': '#E6DACE',
+                        'spa-beige': '#D8C3A5',
+                        'spa-brown': '#8E8D8A',
+                        'spa-olive': '#6B705C',
+                        'spa-dark': '#3F4238',
+                    }
+                },
+                fontFamily: {
+                    'serif': ['Garamond', 'Georgia', 'serif'],
+                    'sans': ['Montserrat', 'Arial', 'sans-serif'],
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #F8F4EF;
+            font-family: 'Montserrat', Arial, sans-serif;
+        }
+        .hero-pattern {
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23d8c3a5' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E");
+        }
+    </style>
+    <script type="module" src="./js/auth/register.js"></script>
+</head>
+<body class="hero-pattern min-h-screen flex flex-col">
+    <header class="bg-white bg-opacity-80 py-4 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center">
+                <a href="/" class="font-serif text-2xl font-bold text-spa-dark">Aesthenda</a>
+                <a href="/login.html" class="text-spa-olive hover:text-spa-dark transition-colors">Sign in</a>
+            </div>
+        </div>
+    </header>
+    
+    <main class="flex-grow flex items-center justify-center px-4 py-12">
+        <div class="w-full max-w-md">
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="px-6 py-8">
+                    <div class="text-center mb-8">
+                        <h2 class="text-3xl font-serif font-bold text-spa-dark">Create Account</h2>
+                        <p class="mt-2 text-spa-brown">Join Aesthenda for luxurious services</p>
+                    </div>
+                    
+                    <form id="registerForm" class="space-y-6">
+                        <!-- Server response alert (hidden by default) -->
+                        <div id="alertMessage" class="hidden p-4 rounded-md"></div>
+                        
+                        <div>
+                            <label for="fullName" class="block text-sm font-medium text-spa-brown mb-1">Full Name</label>
+                            <input 
+                                type="text" 
+                                id="fullName" 
+                                name="fullName" 
+                                required 
+                                class="w-full px-3 py-2 border border-spa-beige rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-spa-olive focus:border-spa-olive"
+                                placeholder="John Doe"
+                            >
+                        </div>
+                        
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-spa-brown mb-1">Email address</label>
+                            <input 
+                                type="email" 
+                                id="email" 
+                                name="email" 
+                                required 
+                                class="w-full px-3 py-2 border border-spa-beige rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-spa-olive focus:border-spa-olive"
+                                placeholder="name@example.com"
+                            >
+                        </div>
+                        
+                        <div>
+                            <label for="password" class="block text-sm font-medium text-spa-brown mb-1">Password</label>
+                            <input 
+                                type="password" 
+                                id="password" 
+                                name="password" 
+                                required 
+                                class="w-full px-3 py-2 border border-spa-beige rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-spa-olive focus:border-spa-olive"
+                                placeholder="••••••••"
+                            >
+                            <p class="mt-1 text-xs text-spa-brown">Password must be at least 6 characters long</p>
+                        </div>
+                        
+                        <div>
+                            <label for="role" class="block text-sm font-medium text-spa-brown mb-1">I am a</label>
+                            <select 
+                                id="role" 
+                                name="role" 
+                                required 
+                                class="w-full px-3 py-2 border border-spa-beige rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-spa-olive focus:border-spa-olive"
+                            >
+                                <option value="client">Client</option>
+                                <option value="stylist">Stylist</option>
+                                <option value="admin">Administrator</option>
+                            </select>
+                        </div>
+                        
+                        <div class="flex items-center">
+                            <input 
+                                id="terms" 
+                                name="terms" 
+                                type="checkbox" 
+                                required
+                                class="h-4 w-4 text-spa-olive focus:ring-spa-olive border-spa-beige rounded"
+                            >
+                            <label for="terms" class="ml-2 block text-sm text-spa-brown">
+                                I agree to the <a href="#" class="text-spa-olive hover:text-spa-dark">Terms</a> and <a href="#" class="text-spa-olive hover:text-spa-dark">Privacy Policy</a>
+                            </label>
+                        </div>
+                        
+                        <div>
+                            <button 
+                                id="registerButton"
+                                type="submit" 
+                                class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-spa-olive hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-spa-olive transition-colors"
+                            >
+                                Create account
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div class="mt-6">
+                        <div class="relative">
+                            <div class="absolute inset-0 flex items-center">
+                                <div class="w-full border-t border-spa-beige"></div>
+                            </div>
+                            <div class="relative flex justify-center text-sm">
+                                <span class="px-2 bg-white text-spa-brown">Or continue with</span>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 grid grid-cols-2 gap-3">
+                            <a 
+                                href="/api/auth/google" 
+                                class="w-full inline-flex justify-center py-2 px-4 border border-spa-beige rounded-md shadow-sm bg-white text-sm font-medium text-spa-brown hover:bg-spa-nude transition-colors"
+                                id="googleLogin"
+                            >
+                                <svg class="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#4285F4">
+                                    <path d="M12.545 10.239v3.821h5.445c-.712 2.315-2.647 3.972-5.445 3.972-3.332 0-6.033-2.701-6.033-6.032s2.701-6.032 6.033-6.032c1.498 0 2.866.549 3.921 1.453l2.814-2.814C17.503 2.988 15.139 2 12.545 2 7.021 2 2.543 6.477 2.543 12s4.478 10 10.002 10c8.396 0 10.249-7.85 9.426-11.748l-9.426-.013z"/>
+                                </svg>
+                                Google
+                            </a>
+                            
+                            <a 
+                                href="/api/auth/facebook" 
+                                class="w-full inline-flex justify-center py-2 px-4 border border-spa-beige rounded-md shadow-sm bg-white text-sm font-medium text-spa-brown hover:bg-spa-nude transition-colors"
+                                id="facebookLogin"
+                            >
+                                <svg class="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#1877F2">
+                                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                                </svg>
+                                Facebook
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <p class="mt-8 text-center text-sm text-spa-brown">
+                Already have an account?
+                <a href="/login.html" class="font-medium text-spa-olive hover:text-spa-dark transition-colors">
+                    Sign in
+                </a>
+            </p>
+        </div>
+    </main>
+    
+    <footer class="bg-white bg-opacity-80 py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center text-spa-brown text-sm">
+                <p>&copy; 2025 Aesthenda Spa & Salon. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html> 
