@@ -25,11 +25,27 @@ const UserSchema = new mongoose.Schema({
     minlength: 6,
     select: false // Don't return password by default in queries
   },
+  // Adding tenantId for multi-tenancy
+  tenantId: {
+    type: String,
+    index: true,
+    // Not required for system admins
+    required: function() {
+      return this.role !== 'system_admin';
+    }
+  },
+  // Modified roles to support dynamic role assignment
   role: {
     type: String,
-    enum: ['client', 'stylist', 'admin'],
+    enum: ['client', 'stylist', 'salon_admin', 'system_admin'],
     default: 'client'
   },
+  // Custom roles for specific tenants
+  customRoles: [{
+    name: String,
+    tenantId: String,
+    permissions: [String]
+  }],
   refreshTokens: [{
     token: {
       type: String,
@@ -51,6 +67,17 @@ const UserSchema = new mongoose.Schema({
       token: String,
       profile: mongoose.Schema.Types.Mixed
     }
+  },
+  isVerified: {
+    type: Boolean,
+    default: false
+  },
+  profileImage: {
+    type: String
+  },
+  phone: {
+    type: String,
+    trim: true
   },
   createdAt: {
     type: Date,
@@ -91,7 +118,8 @@ UserSchema.methods.generateAuthToken = function() {
     { 
       id: this._id,
       email: this.email,
-      role: this.role 
+      role: this.role,
+      tenantId: this.tenantId  // Include tenantId in the token
     },
     process.env.JWT_SECRET || 'your_jwt_secret_key', // Use environment variable in production
     { 
@@ -104,7 +132,10 @@ UserSchema.methods.generateAuthToken = function() {
 UserSchema.methods.generateRefreshToken = async function() {
   // Create a refresh token with longer expiry
   const refreshToken = jwt.sign(
-    { id: this._id },
+    { 
+      id: this._id,
+      tenantId: this.tenantId  // Include tenantId in refresh token
+    },
     process.env.REFRESH_TOKEN_SECRET || 'your_refresh_token_secret_key',
     { expiresIn: '7d' } // 7 days
   );
@@ -150,6 +181,42 @@ UserSchema.methods.removeRefreshToken = async function(refreshToken) {
 UserSchema.methods.removeAllRefreshTokens = async function() {
   this.refreshTokens = [];
   await this.save();
+};
+
+// Method to check if user has permission for a specific action
+UserSchema.methods.hasPermission = function(permission) {
+  // System admins have all permissions
+  if (this.role === 'system_admin') return true;
+  
+  // For salon admins, check if they're asking about their tenant
+  if (this.role === 'salon_admin') {
+    // Salon admins have all permissions within their tenant
+    const adminPermissions = [
+      'manage_staff',
+      'manage_services',
+      'manage_appointments',
+      'view_reports',
+      'manage_clients',
+      'manage_settings',
+      'manage_billing'
+    ];
+    
+    return adminPermissions.includes(permission);
+  }
+  
+  // For users with custom roles, check if they have the specific permission
+  const customRole = this.customRoles.find(role => role.tenantId === this.tenantId);
+  if (customRole) {
+    return customRole.permissions.includes(permission);
+  }
+  
+  // For basic roles, define standard permissions
+  const rolePermissions = {
+    client: ['view_own_appointments', 'book_appointment', 'manage_own_profile'],
+    stylist: ['view_own_schedule', 'view_assigned_clients', 'update_appointment_status']
+  };
+  
+  return rolePermissions[this.role]?.includes(permission) || false;
 };
 
 /**

@@ -27,7 +27,8 @@ const authenticateToken = (req) => {
     return {
       id: decoded.id,
       email: decoded.email,
-      role: decoded.role
+      role: decoded.role,
+      tenantId: decoded.tenantId
     };
   } catch (error) {
     // Token verification failed

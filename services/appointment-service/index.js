@@ -33,6 +33,7 @@ const typeDefs = gql`
     date: String!
     time: String!
     status: String!
+    tenantId: ID!
   }
 
   type Query {
@@ -51,20 +52,31 @@ const typeDefs = gql`
 // Resolvers
 const resolvers = {
   Query: {
-    appointments: () => [], // Placeholder
-    appointment: (_, { id }) => null, // Placeholder
-    userAppointments: (_, { userId }) => [] // Placeholder
+    appointments: (_, __, { tenantId }) => {
+      // Fetch appointments for the specific tenant
+      return Appointment.find({ tenantId });
+    },
+    appointment: (_, { id }, { tenantId }) => {
+      // Fetch a specific appointment for the tenant
+      return Appointment.findOne({ _id: id, tenantId });
+    },
+    userAppointments: (_, { userId }, { tenantId }) => {
+      // Fetch user appointments for the specific tenant
+      return Appointment.find({ userId, tenantId });
+    }
   },
   Mutation: {
-    createAppointment: (_, args) => {
-      // Placeholder - would create the appointment and then notify
+    createAppointment: async (_, args, { tenantId }) => {
+      // Include tenantId in the appointment creation
+      const appointment = new Appointment({ ...args, tenantId });
+      await appointment.save();
       if (channel) {
         channel.sendToQueue('appointment_notifications', Buffer.from(JSON.stringify({
           type: 'NEW_APPOINTMENT',
-          data: { ...args }
+          data: { ...args, tenantId }
         })));
       }
-      return null;
+      return appointment;
     },
     updateAppointmentStatus: (_, args) => null, // Placeholder
     cancelAppointment: (_, args) => null // Placeholder

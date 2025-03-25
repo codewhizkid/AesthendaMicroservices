@@ -36,6 +36,11 @@ app.get('/verify-email', (req, res) => {
   res.sendFile(path.join(__dirname, 'verify-email.html'));
 });
 
+// Salon registration and management routes
+app.get('/salon-register', (req, res) => {
+  res.sendFile(path.join(__dirname, 'salon-register.html'));
+});
+
 // OAuth proxy routes - forward to API Gateway
 app.get('/api/auth/:provider', (req, res) => {
   const provider = req.params.provider;
@@ -59,6 +64,7 @@ app.listen(PORT, () => {
   console.log(`Frontend client is running at http://localhost:${PORT}`);
   console.log(`Login page available at http://localhost:${PORT}/login`);
   console.log(`Registration page available at http://localhost:${PORT}/register`);
+  console.log(`Salon registration page available at http://localhost:${PORT}/salon-register`);
   console.log(`Password reset page available at http://localhost:${PORT}/reset-password`);
   console.log(`Email verification page available at http://localhost:${PORT}/verify-email`);
   console.log(`OAuth endpoints are proxied to http://${API_GATEWAY_HOST}:${API_GATEWAY_PORT}`);

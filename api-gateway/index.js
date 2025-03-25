@@ -14,6 +14,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const Redis = require('ioredis');
 const RedisStore = require('rate-limit-redis').default;
+const roleRoutes = require('./roleRoutes');
 
 // Initialize Redis client
 const redisClient = new Redis({
@@ -703,6 +704,9 @@ async function startServer() {
   app.get('/health', (req, res) => {
     res.status(200).json({ status: 'healthy' });
   });
+
+  // Use role management routes
+  app.use(roleRoutes);
 
   // Start the server
   const PORT = process.env.PORT || 4000;

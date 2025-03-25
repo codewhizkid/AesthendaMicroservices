@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register Your Salon - Aesthenda</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'spa-nude': {
+              50: '#f9f6f3',
+              100: '#f1ece6',
+              200: '#e4d8cc',
+              300: '#d5bfaa',
+              400: '#c3a182',
+              500: '#b78a67',
+              DEFAULT: '#E6DACE',
+            },
+            'spa-beige': '#D8C3A5',
+            'spa-brown': '#8E8D8A',
+            'spa-olive': {
+              500: '#778660',
+              600: '#6B705C',
+              DEFAULT: '#6B705C',
+            },
+            'spa-dark': '#3F4238',
+          }
+        },
+        fontFamily: {
+          'serif': ['Playfair Display', 'Garamond', 'Georgia', 'serif'],
+          'sans': ['Montserrat', 'Arial', 'sans-serif'],
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #F8F4EF;
+      font-family: 'Montserrat', Arial, sans-serif;
+    }
+    .hero-pattern {
+      background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23d8c3a5' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E");
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="hero-pattern min-h-screen flex flex-col">
+  <header class="w-full bg-white bg-opacity-90 py-4 px-6 shadow-sm">
+    <div class="max-w-7xl mx-auto flex justify-between items-center">
+      <a href="/" class="font-serif text-2xl font-bold text-spa-dark">AESTHENDA</a>
+      <nav>
+        <ul class="flex space-x-6">
+          <li><a href="/login.html" class="text-spa-brown hover:text-spa-olive transition-colors">Login</a></li>
+          <li><a href="/register.html" class="text-spa-brown hover:text-spa-olive transition-colors">Register</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main class="flex-grow flex flex-col items-center justify-center px-4 py-12">
+    <div class="w-full max-w-5xl mx-auto bg-white bg-opacity-90 rounded-xl shadow-lg overflow-hidden">
+      <div class="flex flex-col md:flex-row">
+        <!-- Left side - Illustration and benefits -->
+        <div class="md:w-2/5 bg-spa-nude-100 p-8 flex flex-col justify-center">
+          <h2 class="font-serif text-3xl font-bold text-spa-dark mb-6">Welcome to Aesthenda!</h2>
+          <p class="text-spa-brown mb-4">Follow these steps to get your salon up and running:</p>
+          <ol class="list-decimal list-inside space-y-2 text-spa-brown">
+            <li><strong>Complete Registration:</strong> Ensure all required fields are filled out.</li>
+            <li><strong>Set Up Your Salon Profile:</strong> Customize your salon's profile with services, hours, and staff.</li>
+            <li><strong>Explore Features:</strong> Overview of key features like appointment scheduling, client management, and analytics.</li>
+            <li><strong>Invite Staff:</strong> Add staff members and assign roles.</li>
+            <li><strong>Go Live:</strong> Publish your salon profile and start accepting bookings.</li>
+          </ol>
+          <p class="text-spa-brown text-sm italic mt-4">Need help? Visit our <a href="#" class="text-spa-olive hover:underline">Help Center</a>.</p>
+        </div>
+        
+        <!-- Right side - Registration form -->
+        <div class="md:w-3/5 p-8">
+          <h1 class="font-serif text-3xl font-bold text-spa-dark mb-2">Register Your Salon</h1>
+          <p class="text-spa-brown mb-6">Create your salon account to get started with Aesthenda</p>
+          
+          <div id="alert-error" class="hidden bg-red-50 border-l-4 border-red-400 p-4 mb-6">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+              </div>
+              <div class="ml-3">
+                <p class="text-sm text-red-700" id="error-message"></p>
+              </div>
+            </div>
+          </div>
+          
+          <form id="salon-registration-form" class="space-y-6">
+            <div class="space-y-4">
+              <h3 class="font-medium text-spa-dark">Salon Information</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label for="salon-name" class="block text-sm font-medium text-spa-brown">Salon Name *</label>
+                  <input type="text" id="salon-name" name="salon-name" required class="mt-1 focus:ring-spa-olive focus:border-spa-olive block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                </div>
+                <div>
+                  <label for="salon-type" class="block text-sm font-medium text-spa-brown">Salon Type *</label>
+                  <select id="salon-type" name="salon-type" required class="mt-1 focus:ring-spa-olive focus:border-spa-olive block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                    <option value="">Select Type</option>
+                    <option value="hair-salon">Hair Salon</option>
+                    <option value="spa">Spa</option>
+                    <option value="nail-salon">Nail Salon</option>
+                    <option value="barbershop">Barbershop</option>
+                    <option value="beauty-salon">Beauty Salon</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label for="salon-address" class="block text-sm font-medium text-spa-brown">Address *</label>
+                <input type="text" id="salon-address" name="salon-address" required class="mt-1 focus:ring-spa-olive focus:border-spa-olive block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label for="salon-city" class="block text-sm font-medium text-spa-brown">City *</label>
+                  <input type="text" id="salon-city" name="salon-city" required class="mt-1 focus:ring-spa-olive focus:border-spa-olive block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                </div>
+                <div>
+                  <label for="salon-state" class="block text-sm font-medium text-spa-brown">State *</label>
+                  <input type="text" id="salon-state" name="salon-state" required class="mt-1 focus:ring-spa-olive focus:border-spa-olive block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                </div>
+                <div>
+                  <label for="salon-zip" class="block text-sm font-medium text-spa-brown">ZIP Code *</label>
+                  <input type="text" id="salon-zip" name="salon-zip" required class="mt-1 focus:ring-spa-olive focus:border-spa-olive block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                </div>
+              </div>
+              <div>
+                <label for="salon-phone" class="block text-sm font-medium text-spa-brown">Phone Number *</label>
+                <input type="tel" id="salon-phone" name="salon-phone" required class="mt-1 focus:ring-spa-olive focus:border-spa-olive block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+              </div>
+            </div>
+            
+            <div class="space-y-4">
+              <h3 class="font-medium text-spa-dark">Administrator Account</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label for="first-name" class="block text-sm font-medium text-spa-brown">First Name *</label>
+                  <input type="text" id="first-name" name="first-name" required class="mt-1 focus:ring-spa-olive focus:border-spa-olive block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                </div>
+                <div>
+                  <label for="last-name" class="block text-sm font-medium text-spa-brown">Last Name *</label>
+                  <input type="text" id="last-name" name="last-name" required class="mt-1 focus:ring-spa-olive focus:border-spa-olive block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                </div>
+              </div>
+              <div>
+                <label for="email" class="block text-sm font-medium text-spa-brown">Email Address *</label>
+                <input type="email" id="email" name="email" required class="mt-1 focus:ring-spa-olive focus:border-spa-olive block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+              </div>
+              <div>
+                <label for="password" class="block text-sm font-medium text-spa-brown">Create Password *</label>
+                <input type="password" id="password" name="password" required minlength="8" class="mt-1 focus:ring-spa-olive focus:border-spa-olive block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                <p class="mt-1 text-xs text-spa-brown">Password must be at least 8 characters</p>
+              </div>
+              <div>
+                <label for="confirm-password" class="block text-sm font-medium text-spa-brown">Confirm Password *</label>
+                <input type="password" id="confirm-password" name="confirm-password" required minlength="8" class="mt-1 focus:ring-spa-olive focus:border-spa-olive block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+              </div>
+            </div>
+            
+            <div class="flex items-start">
+              <div class="flex items-center h-5">
+                <input id="terms" name="terms" type="checkbox" required class="focus:ring-spa-olive h-4 w-4 text-spa-olive border-gray-300 rounded">
+              </div>
+              <div class="ml-3 text-sm">
+                <label for="terms" class="font-medium text-spa-brown">I agree to the <a href="#" class="text-spa-olive hover:underline">Terms of Service</a> and <a href="#" class="text-spa-olive hover:underline">Privacy Policy</a> *</label>
+              </div>
+            </div>
+            
+            <div>
+              <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-spa-olive hover:bg-spa-olive-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-spa-olive">
+                Register Salon
+              </button>
+            </div>
+          </form>
+          
+          <p class="mt-6 text-center text-sm text-spa-brown">
+            Already have an account? <a href="/login.html" class="font-medium text-spa-olive hover:underline">Sign in</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </main>
+  
+  <footer class="bg-white bg-opacity-80 py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center text-spa-brown text-sm">
+        <p>&copy; 2025 Aesthenda Spa & Salon. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+  
+  <script src="/js/graphql-client.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const form = document.getElementById('salon-registration-form');
+      const errorAlert = document.getElementById('alert-error');
+      const errorMessage = document.getElementById('error-message');
+      
+      form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        // Validate passwords match
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirm-password').value;
+        
+        if (password !== confirmPassword) {
+          errorAlert.classList.remove('hidden');
+          errorMessage.textContent = 'Passwords do not match';
+          return;
+        }
+        
+        // Collect form data
+        const salonData = {
+          name: document.getElementById('salon-name').value,
+          type: document.getElementById('salon-type').value,
+          address: document.getElementById('salon-address').value,
+          city: document.getElementById('salon-city').value,
+          state: document.getElementById('salon-state').value,
+          zipCode: document.getElementById('salon-zip').value,
+          phone: document.getElementById('salon-phone').value
+        };
+        
+        const adminData = {
+          firstName: document.getElementById('first-name').value,
+          lastName: document.getElementById('last-name').value,
+          email: document.getElementById('email').value,
+          password: password
+        };
+        
+        try {
+          errorAlert.classList.add('hidden');
+          
+          // GraphQL mutation to register a salon
+          const mutation = `
+            mutation RegisterSalon($salonInput: SalonInput!, $adminInput: AdminInput!) {
+              registerSalon(salonInput: $salonInput, adminInput: $adminInput) {
+                success
+                message
+                salon {
+                  id
+                  name
+                }
+                admin {
+                  id
+                  email
+                }
+                token
+                refreshToken
+              }
+            }
+          `;
+          
+          const variables = {
+            salonInput: salonData,
+            adminInput: adminData
+          };
+          
+          const response = await executeMutation(mutation, variables);
+          
+          if (response.success && response.registerSalon.success) {
+            // Store tokens
+            localStorage.setItem('token', response.registerSalon.token);
+            localStorage.setItem('refreshToken', response.registerSalon.refreshToken);
+            
+            // Redirect to onboarding or dashboard
+            window.location.href = '/salon-onboarding.html';
+          } else {
+            // Show error
+            errorAlert.classList.remove('hidden');
+            errorMessage.textContent = response.registerSalon.message || 'An error occurred during registration';
+          }
+        } catch (error) {
+          console.error('Registration error:', error);
+          errorAlert.classList.remove('hidden');
+          errorMessage.textContent = 'Registration failed. Please try again.';
+        }
+      });
+    });
+  </script>
+</body>
+</html> 

@@ -3,25 +3,43 @@ const mongoose = require('mongoose');
 const typeDefs = require('./schema/typeDefs');
 const authResolvers = require('./resolvers/authResolvers');
 const userResolvers = require('./resolvers/userResolvers');
+const salonResolvers = require('./resolvers/salonResolvers');
+const roleResolvers = require('./resolvers/roleResolvers');
 const { getUser } = require('./middleware/authMiddleware');
+const { applyTenantIsolation, createApolloContext } = require('./middleware/tenantMiddleware');
+
+// Import all models to ensure they're registered before applying tenant isolation
+require('./models/User');
+require('./models/Salon');
+require('./models/Role');
+require('./models/PendingSalon');
 
 // MongoDB Connection
 mongoose.connect('mongodb://mongo-user:27017/userdb', {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
-.then(() => console.log('MongoDB Connected'))
+.then(() => {
+  console.log('MongoDB Connected');
+  
+  // Apply tenant isolation to relevant models
+  applyTenantIsolation();
+})
 .catch(err => console.log('MongoDB Connection Error:', err));
 
 // Merge resolvers
 const resolvers = {
   Query: {
     ...authResolvers.Query,
-    ...userResolvers.Query
+    ...userResolvers.Query,
+    ...salonResolvers.Query,
+    ...roleResolvers.Query
   },
   Mutation: {
     ...authResolvers.Mutation,
-    ...userResolvers.Mutation
+    ...userResolvers.Mutation,
+    ...salonResolvers.Mutation,
+    ...roleResolvers.Mutation
   }
 };
 
@@ -30,10 +48,14 @@ const server = new ApolloServer({
   typeDefs,
   resolvers,
   context: ({ req }) => {
-    // Get user from JWT token in request headers
-    const user = getUser(req);
+    // Get user and tenant context from JWT token
+    const contextData = createApolloContext()({ req });
     
-    return { user };
+    return {
+      ...contextData,
+      // For backward compatibility
+      user: contextData.user
+    };
   },
   formatError: (err) => {
     // Log errors for debugging
@@ -50,5 +72,5 @@ const server = new ApolloServer({
 
 // Start the server
 server.listen({ port: 5001 }).then(({ url }) => {
-  console.log(`🚀 User Service ready with authentication at ${url}`);
+  console.log(`🚀 User Service ready with multi-tenant authentication at ${url}`);
 });
