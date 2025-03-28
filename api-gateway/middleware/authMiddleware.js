@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const config = require('../config');
 
 /**
  * Authentication middleware to extract user from JWT token
@@ -21,14 +22,15 @@ const authenticateToken = (req) => {
     }
 
     // Verify and decode the token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
+    const decoded = jwt.verify(token, config.jwt.secret);
     
     // Return the user information from the token
     return {
       id: decoded.id,
       email: decoded.email,
       role: decoded.role,
-      tenantId: decoded.tenantId
+      tenantId: decoded.tenantId,
+      stylist_id: decoded.stylist_id
     };
   } catch (error) {
     // Token verification failed
@@ -50,7 +52,37 @@ const checkRole = (user, requiredRoles) => {
   return requiredRoles.includes(user.role);
 };
 
+// Middleware to check if user is a stylist and belongs to specified tenant
+const checkStylistAccess = (user, tenantId, stylist_id) => {
+  if (!user) {
+    return false;
+  }
+  
+  // System admins and salon admins have full access
+  if (user.role === 'system_admin' || (user.role === 'salon_admin' && user.tenantId === tenantId)) {
+    return true;
+  }
+  
+  // For stylists, check both tenant and stylist_id
+  if (['stylist', 'salon_staff'].includes(user.role)) {
+    // Always check tenant
+    if (user.tenantId !== tenantId) {
+      return false;
+    }
+    
+    // If stylist_id is specified, check that too
+    if (stylist_id && user.stylist_id !== stylist_id) {
+      return false;
+    }
+    
+    return true;
+  }
+  
+  return false;
+};
+
 module.exports = {
   authenticateToken,
-  checkRole
+  checkRole,
+  checkStylistAccess
 }; 

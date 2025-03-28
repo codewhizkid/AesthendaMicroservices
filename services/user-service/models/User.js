@@ -1,10 +1,17 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const config = require('../config');
+const { generateUniqueId } = require('../utils/tokenHelper');
 
 const UserSchema = new mongoose.Schema({
-  name: {
+  firstName: {
     type: String,
+    required: true,
+    trim: true
+  },
+  lastName: {
+    type: String, 
     required: true,
     trim: true
   },
@@ -14,281 +21,309 @@ const UserSchema = new mongoose.Schema({
     unique: true,
     trim: true,
     lowercase: true,
-    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
+    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email address']
   },
   password: {
     type: String,
-    required: function() {
-      // Password is required only if the user doesn't use OAuth
-      return !this.oauthProviders || Object.keys(this.oauthProviders).length === 0;
-    },
-    minlength: 6,
-    select: false // Don't return password by default in queries
+    required: true,
+    minlength: 6
   },
-  // Adding tenantId for multi-tenancy
   tenantId: {
     type: String,
+    required: true,
     index: true,
-    // Not required for system admins
-    required: function() {
-      return this.role !== 'system_admin';
+    default: function() {
+      return config.getEnv('DEFAULT_TENANT_ID', 'default');
     }
   },
-  // Modified roles to support dynamic role assignment
   role: {
     type: String,
-    enum: ['client', 'stylist', 'salon_admin', 'system_admin'],
+    enum: ['client', 'stylist', 'salon_staff', 'salon_admin', 'system_admin'],
     default: 'client'
   },
-  // Custom roles for specific tenants
+  stylist_id: {
+    type: String,
+    sparse: true,  // Only index non-null values
+    index: true,   // Index for faster lookup
+    default: null  // Only set for staff members
+  },
   customRoles: [{
     name: String,
-    tenantId: String,
     permissions: [String]
   }],
-  refreshTokens: [{
-    token: {
-      type: String,
-      required: true
+  profile: {
+    phoneNumber: String,
+    title: String,
+    bio: String,
+    avatar: String,
+    preferences: {
+      language: {
+        type: String,
+        default: 'en'
+      },
+      notifications: {
+        email: {
+          type: Boolean,
+          default: true
+        },
+        sms: {
+          type: Boolean,
+          default: true
+        },
+        push: {
+          type: Boolean,
+          default: true
+        }
+      },
+      theme: {
+        type: String,
+        enum: ['light', 'dark', 'system'],
+        default: 'system'
+      }
+    }
+  },
+  services: [{
+    serviceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Service'
     },
-    expiresAt: {
+    name: String,
+    duration: Number, // in minutes
+    price: Number
+  }],
+  refreshTokens: [{
+    token: String,
+    expires: Date,
+    createdAt: {
       type: Date,
-      required: true
+      default: Date.now
     }
   }],
+  passwordReset: {
+    token: String,
+    expiry: Date,
+    required: {
+      type: Boolean,
+      default: false
+    }
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  deactivatedAt: Date,
+  lastLogin: Date,
   oauthProviders: {
     google: {
       id: String,
       token: String,
-      profile: mongoose.Schema.Types.Mixed
+      email: String,
+      name: String
     },
     facebook: {
       id: String,
       token: String,
-      profile: mongoose.Schema.Types.Mixed
+      email: String,
+      name: String
     }
   },
-  isVerified: {
-    type: Boolean,
-    default: false
-  },
-  profileImage: {
-    type: String
-  },
-  phone: {
-    type: String,
-    trim: true
-  },
   createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
     type: Date,
     default: Date.now
   }
 });
 
+// Index for performance optimization (common queries)
+UserSchema.index({ email: 1 });
+UserSchema.index({ tenantId: 1, role: 1 });
+UserSchema.index({ tenantId: 1, stylist_id: 1 }, { sparse: true });
+
 // Hash password before saving
 UserSchema.pre('save', async function(next) {
-  // Only hash the password if it's modified (or new) and exists
-  if (!this.isModified('password') || !this.password) {
-    return next();
-  }
-  
+  // Only hash the password if it has been modified (or is new)
+  if (!this.isModified('password')) return next();
+
   try {
-    // Generate salt
+    // Generate a salt and hash the password
     const salt = await bcrypt.genSalt(10);
-    // Hash the password with the salt
     this.password = await bcrypt.hash(this.password, salt);
+    
+    // If user has a staff role and no stylist_id, generate one
+    if (['stylist', 'salon_staff', 'salon_admin'].includes(this.role) && !this.stylist_id) {
+      // Generate a unique stylist ID if not already set
+      this.stylist_id = await this.constructor.generateStylistId(this.tenantId);
+    }
+    
     next();
   } catch (error) {
     next(error);
   }
 });
 
-// Method to compare password
+// Update the timestamp before update
+UserSchema.pre('findOneAndUpdate', function() {
+  this.set({ updatedAt: new Date() });
+});
+
+// Compare password
 UserSchema.methods.comparePassword = async function(candidatePassword) {
-  // If user doesn't have a password (OAuth user), return false
-  if (!this.password) {
-    return false;
+  try {
+    return await bcrypt.compare(candidatePassword, this.password);
+  } catch (error) {
+    throw new Error(error);
   }
-  return await bcrypt.compare(candidatePassword, this.password);
 };
 
-// Method to generate JWT access token (short-lived)
+// Generate JWT token
 UserSchema.methods.generateAuthToken = function() {
-  return jwt.sign(
-    { 
-      id: this._id,
-      email: this.email,
-      role: this.role,
-      tenantId: this.tenantId  // Include tenantId in the token
-    },
-    process.env.JWT_SECRET || 'your_jwt_secret_key', // Use environment variable in production
-    { 
-      expiresIn: '15m' // Shorter expiration time for access tokens
-    }
-  );
-};
-
-// Method to generate refresh token (long-lived)
-UserSchema.methods.generateRefreshToken = async function() {
-  // Create a refresh token with longer expiry
-  const refreshToken = jwt.sign(
-    { 
-      id: this._id,
-      tenantId: this.tenantId  // Include tenantId in refresh token
-    },
-    process.env.REFRESH_TOKEN_SECRET || 'your_refresh_token_secret_key',
-    { expiresIn: '7d' } // 7 days
-  );
-  
-  // Calculate expiry date for database storage
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 7); // 7 days from now
-  
-  // Store the refresh token in the user document
-  this.refreshTokens.push({ token: refreshToken, expiresAt });
-  await this.save();
-  
-  return refreshToken;
-};
-
-// Method to verify a refresh token
-UserSchema.methods.verifyRefreshToken = function(refreshToken) {
-  // Find the refresh token in the user's tokens array
-  const tokenDoc = this.refreshTokens.find(t => t.token === refreshToken);
-  
-  if (!tokenDoc) {
-    return false;
-  }
-  
-  // Check if token is expired
-  if (new Date() > tokenDoc.expiresAt) {
-    // Remove expired token
-    this.refreshTokens = this.refreshTokens.filter(t => t.token !== refreshToken);
-    this.save().catch(err => console.error('Error removing expired token:', err));
-    return false;
-  }
-  
-  return true;
-};
-
-// Method to remove a specific refresh token
-UserSchema.methods.removeRefreshToken = async function(refreshToken) {
-  this.refreshTokens = this.refreshTokens.filter(t => t.token !== refreshToken);
-  await this.save();
-};
-
-// Method to remove all refresh tokens (logout from all devices)
-UserSchema.methods.removeAllRefreshTokens = async function() {
-  this.refreshTokens = [];
-  await this.save();
-};
-
-// Method to check if user has permission for a specific action
-UserSchema.methods.hasPermission = function(permission) {
-  // System admins have all permissions
-  if (this.role === 'system_admin') return true;
-  
-  // For salon admins, check if they're asking about their tenant
-  if (this.role === 'salon_admin') {
-    // Salon admins have all permissions within their tenant
-    const adminPermissions = [
-      'manage_staff',
-      'manage_services',
-      'manage_appointments',
-      'view_reports',
-      'manage_clients',
-      'manage_settings',
-      'manage_billing'
-    ];
-    
-    return adminPermissions.includes(permission);
-  }
-  
-  // For users with custom roles, check if they have the specific permission
-  const customRole = this.customRoles.find(role => role.tenantId === this.tenantId);
-  if (customRole) {
-    return customRole.permissions.includes(permission);
-  }
-  
-  // For basic roles, define standard permissions
-  const rolePermissions = {
-    client: ['view_own_appointments', 'book_appointment', 'manage_own_profile'],
-    stylist: ['view_own_schedule', 'view_assigned_clients', 'update_appointment_status']
+  const tokenData = {
+    id: this._id,
+    email: this.email,
+    role: this.role,
+    tenantId: this.tenantId
   };
   
-  return rolePermissions[this.role]?.includes(permission) || false;
+  // Add stylist_id to token if present
+  if (this.stylist_id) {
+    tokenData.stylist_id = this.stylist_id;
+  }
+
+  return jwt.sign(
+    tokenData,
+    config.jwt.secret,
+    { expiresIn: config.jwt.expiry }
+  );
 };
 
-/**
- * Find or create a user from OAuth profile data
- * @param {String} provider - The OAuth provider ('google' or 'facebook')
- * @param {Object} profile - The OAuth profile data
- * @param {String} token - The OAuth access token
- * @returns {Promise<Object>} - The user object and a boolean indicating if it was created
- */
-UserSchema.statics.findOrCreateFromOAuth = async function(provider, profile, token) {
-  if (!['google', 'facebook'].includes(provider)) {
-    throw new Error('Invalid OAuth provider');
+// Generate refresh token
+UserSchema.methods.generateRefreshToken = function() {
+  const tokenData = {
+    id: this._id,
+    email: this.email,
+    type: 'refresh',
+    tenantId: this.tenantId
+  };
+  
+  // Add stylist_id to token if present
+  if (this.stylist_id) {
+    tokenData.stylist_id = this.stylist_id;
   }
 
-  // Try to find user by provider ID
-  let user = await this.findOne({
-    [`oauthProviders.${provider}.id`]: profile.id
+  // Create the token with a longer expiry
+  const token = jwt.sign(
+    tokenData,
+    config.jwt.refreshSecret,
+    { expiresIn: config.jwt.refreshExpiry }
+  );
+
+  // Calculate the expiry date
+  const expiry = new Date();
+  expiry.setSeconds(expiry.getSeconds() + parseInt(config.jwt.refreshExpiry));
+
+  // Add to refresh tokens array
+  this.refreshTokens.push({
+    token,
+    expires: expiry
   });
 
-  // If user exists with this OAuth ID, update the token and return
-  if (user) {
-    user.oauthProviders[provider].token = token;
-    user.oauthProviders[provider].profile = profile;
-    await user.save();
-    return { user, created: false };
+  // Limit the number of refresh tokens
+  const maxTokens = 5;
+  if (this.refreshTokens.length > maxTokens) {
+    this.refreshTokens = this.refreshTokens.slice(-maxTokens);
   }
 
-  // If no user with this OAuth ID, try to find by email
-  if (profile.email) {
-    user = await this.findOne({ email: profile.email });
+  return { token, expires: expiry };
+};
+
+// Check if user has permission
+UserSchema.methods.hasPermission = function(permission) {
+  // System admin has all permissions
+  if (this.role === 'system_admin') return true;
+  
+  // Role-based permissions
+  const rolePermissions = {
+    client: ['view_own_appointments', 'book_appointment'],
+    stylist: ['view_own_appointments', 'manage_own_appointments', 'view_own_clients'],
+    salon_staff: ['view_all_appointments', 'manage_appointments', 'view_clients'],
+    salon_admin: ['view_all_appointments', 'manage_appointments', 'manage_staff', 'manage_services', 'view_clients', 'manage_salon']
+  };
+  
+  // Check if user's role has the required permission
+  if (rolePermissions[this.role] && rolePermissions[this.role].includes(permission)) {
+    return true;
+  }
+  
+  // Check if user has custom role with permission
+  if (this.customRoles && this.customRoles.length > 0) {
+    return this.customRoles.some(role => role.permissions.includes(permission));
+  }
+  
+  return false;
+};
+
+// Check if user can access appointments
+UserSchema.methods.canAccessAppointment = function(appointment) {
+  // Quick rejects - always check tenant first
+  if (this.tenantId !== appointment.tenantId) {
+    // System admins are the only exception
+    if (this.role === 'system_admin') return true;
+    return false;
+  }
+  
+  // Role-based checks
+  switch(this.role) {
+    case 'system_admin':
+    case 'salon_admin':
+    case 'salon_staff':
+      return true;
+    case 'stylist':
+      return this.stylist_id === appointment.stylist_id;
+    case 'client':
+      return this._id.toString() === appointment.clientId.toString();
+    default:
+      return false;
+  }
+};
+
+// Static method to find by email
+UserSchema.statics.findByEmail = function(email) {
+  return this.findOne({ email: email.toLowerCase() });
+};
+
+// Static method to find by stylist_id
+UserSchema.statics.findByStylistId = function(stylist_id, tenantId) {
+  return this.findOne({ stylist_id, tenantId });
+};
+
+// Static method to generate a unique stylist ID
+UserSchema.statics.generateStylistId = async function(tenantId) {
+  let isUnique = false;
+  let stylistId;
+  
+  // Keep generating until we find a unique one
+  while (!isUnique) {
+    // Generate stylist ID with prefix (e.g., STY12345678)
+    stylistId = generateUniqueId('STY');
     
-    // If found by email, add OAuth provider info
-    if (user) {
-      if (!user.oauthProviders) {
-        user.oauthProviders = {};
-      }
-      
-      user.oauthProviders[provider] = {
-        id: profile.id,
-        token: token,
-        profile: profile
-      };
-      
-      await user.save();
-      return { user, created: false };
+    // Check if it already exists
+    const existingUser = await this.findOne({ 
+      stylist_id: stylistId,
+      tenantId
+    });
+    
+    if (!existingUser) {
+      isUnique = true;
     }
   }
-
-  // No user found, create a new one
-  const name = profile.displayName || 
-               profile.name || 
-               (profile.firstName && profile.lastName 
-                ? `${profile.firstName} ${profile.lastName}` 
-                : 'User');
   
-  const email = profile.email || `${profile.id}@${provider}.user`;
-  
-  const newUser = new this({
-    name,
-    email,
-    role: 'client', // Default role for OAuth users
-    oauthProviders: {
-      [provider]: {
-        id: profile.id,
-        token,
-        profile
-      }
-    }
-  });
-
-  await newUser.save();
-  return { user: newUser, created: true };
+  return stylistId;
 };
+
+// Add timestamps for tracking createdAt and updatedAt
+UserSchema.set('timestamps', true);
 
 module.exports = mongoose.model('User', UserSchema);

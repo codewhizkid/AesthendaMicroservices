@@ -15,14 +15,10 @@ const rateLimit = require('express-rate-limit');
 const Redis = require('ioredis');
 const RedisStore = require('rate-limit-redis').default;
 const roleRoutes = require('./roleRoutes');
+const config = require('./config');
 
 // Initialize Redis client
-const redisClient = new Redis({
-  host: process.env.REDIS_HOST || 'redis',
-  port: process.env.REDIS_PORT || 6379,
-  enableOfflineQueue: true,
-  connectTimeout: 10000
-});
+const redisClient = new Redis(config.redis.url);
 
 redisClient.on('error', (err) => {
   console.error('Redis error:', err);
@@ -88,7 +84,7 @@ const typeDefs = gql`
 
 // CORS configuration
 const corsOptions = {
-  origin: ['http://localhost:8080', 'http://localhost:3000'],
+  origin: config.server.corsOrigins,
   credentials: true
 };
 
@@ -100,21 +96,21 @@ app.use(helmet()); // Add security headers
 
 // Configure session middleware
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'your_session_secret_key',
+  secret: config.jwt.secret,
   resave: false,
   saveUninitialized: false,
   cookie: { 
-    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+    secure: config.server.isProd,
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
 
 // Setup global rate limiting middleware
 const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // limit each IP to 500 requests per windowMs
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  windowMs: config.rateLimit.windowMs,
+  max: config.rateLimit.max,
+  standardHeaders: true,
+  legacyHeaders: false,
   store: new RedisStore({
     sendCommand: (command, ...args) => redisClient.send_command(command, ...args),
     prefix: 'global_rl:'
@@ -169,8 +165,8 @@ passport.deserializeUser((user, done) => {
 const setupOAuthStrategies = () => {
   // Google strategy
   passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID || 'your_google_client_id',
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'your_google_client_secret',
+    clientID: config.getEnv('GOOGLE_CLIENT_ID', 'your_google_client_id'),
+    clientSecret: config.getEnv('GOOGLE_CLIENT_SECRET', 'your_google_client_secret'),
     callbackURL: '/auth/google/callback',
     scope: ['profile', 'email']
   }, (accessToken, refreshToken, profile, done) => {
@@ -184,8 +180,8 @@ const setupOAuthStrategies = () => {
 
   // Facebook strategy
   passport.use(new FacebookStrategy({
-    clientID: process.env.FACEBOOK_APP_ID || 'your_facebook_app_id',
-    clientSecret: process.env.FACEBOOK_APP_SECRET || 'your_facebook_app_secret',
+    clientID: config.getEnv('FACEBOOK_APP_ID', 'your_facebook_app_id'),
+    clientSecret: config.getEnv('FACEBOOK_APP_SECRET', 'your_facebook_app_secret'),
     callbackURL: '/auth/facebook/callback',
     profileFields: ['id', 'displayName', 'email', 'picture']
   }, (accessToken, refreshToken, profile, done) => {
@@ -221,11 +217,13 @@ app.get('/auth/google/callback',
       const result = await processOAuthLogin(provider, token, profile);
       
       // Redirect to frontend with tokens
-      const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:8080'}/auth-callback?token=${result.token}&refreshToken=${result.refreshToken}`;
+      const frontendURL = config.getEnv('FRONTEND_URL', 'http://localhost:3000');
+      const redirectUrl = `${frontendURL}/auth-callback?token=${result.token}&refreshToken=${result.refreshToken}`;
       res.redirect(redirectUrl);
     } catch (error) {
       console.error('OAuth callback error:', error);
-      res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8080'}/login?error=oauth_failed`);
+      const frontendURL = config.getEnv('FRONTEND_URL', 'http://localhost:3000');
+      res.redirect(`${frontendURL}/login?error=oauth_failed`);
     }
   }
 );
@@ -244,11 +242,13 @@ app.get('/auth/facebook/callback',
       const result = await processOAuthLogin(provider, token, profile);
       
       // Redirect to frontend with tokens
-      const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:8080'}/auth-callback?token=${result.token}&refreshToken=${result.refreshToken}`;
+      const frontendURL = config.getEnv('FRONTEND_URL', 'http://localhost:3000');
+      const redirectUrl = `${frontendURL}/auth-callback?token=${result.token}&refreshToken=${result.refreshToken}`;
       res.redirect(redirectUrl);
     } catch (error) {
       console.error('OAuth callback error:', error);
-      res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8080'}/login?error=oauth_failed`);
+      const frontendURL = config.getEnv('FRONTEND_URL', 'http://localhost:3000');
+      res.redirect(`${frontendURL}/login?error=oauth_failed`);
     }
   }
 );
@@ -274,7 +274,7 @@ async function processOAuthLogin(provider, token, profile) {
     }
   `;
 
-  const response = await fetch('http://user-service:5001', {
+  const response = await fetch(config.services.user.url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -676,7 +676,11 @@ const server = new ApolloServer({
       code: err.extensions?.code || 'SERVER_ERROR',
       path: err.path
     };
-  }
+  },
+  introspection: config.graphql.introspection,
+  playground: config.graphql.playground,
+  debug: config.graphql.debug,
+  tracing: config.graphql.tracing
 });
 
 // Start the Apollo Server
@@ -709,12 +713,12 @@ async function startServer() {
   app.use(roleRoutes);
 
   // Start the server
-  const PORT = process.env.PORT || 4000;
+  const PORT = config.server.port;
   app.listen(PORT, () => {
     console.log(`🚀 API Gateway ready with authentication at http://localhost:${PORT}${server.graphqlPath}`);
     console.log(`OAuth endpoints available at http://localhost:${PORT}/auth/google and http://localhost:${PORT}/auth/facebook`);
-    console.log(`Rate limiting enabled with Redis at ${process.env.REDIS_HOST || 'redis'}:${process.env.REDIS_PORT || '6379'}`);
-    console.log(`CORS enabled for: ${corsOptions.origin.join(', ')}`);
+    console.log(`Rate limiting enabled with Redis at ${config.redis.url}`);
+    console.log(`CORS enabled for: ${config.server.corsOrigins.join(', ')}`);
   });
 }
 

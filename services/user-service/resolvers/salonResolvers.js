@@ -1,325 +1,235 @@
-const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose');
 const { AuthenticationError, ForbiddenError, UserInputError } = require('apollo-server');
-const Salon = require('../models/Salon');
-const User = require('../models/User');
-const PendingSalon = require('../models/PendingSalon');
-const Role = require('../models/Role');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy_key');
 
-// Plans configuration
-const plans = {
-  free: { price: 0 },
-  basic: { price: 2900 }, // $29/month
-  premium: { price: 5900 }, // $59/month
-  enterprise: { price: 9900 } // $99/month
-};
+const Salon = mongoose.model('Salon');
+const User = mongoose.model('User');
 
-// Helper to validate user's permission to access a salon
-const validateSalonAccess = async (tenantId, user) => {
-  if (!user) {
-    throw new AuthenticationError('You must be logged in to access salon data');
+// Helper to check permissions
+const checkSalonAccess = async (context, tenantId) => {
+  if (!context.user) {
+    throw new AuthenticationError('You must be logged in to perform this action');
   }
   
-  // System admins can access all salons
-  if (user.role === 'system_admin') {
+  // System admins can access any salon
+  if (context.user.role === 'system_admin') {
     return true;
   }
   
-  // Salon admins can only access their own salon
-  if (user.role === 'salon_admin' && user.tenantId === tenantId) {
-    return true;
+  // Users can only access their own salon
+  if (context.user.tenantId !== tenantId) {
+    throw new ForbiddenError('You do not have permission to access this salon');
   }
   
-  // All other roles are not allowed to access salon management
-  throw new ForbiddenError('You do not have permission to access this salon data');
+  // Check if the user has the right role to modify salon settings
+  const allowedRoles = ['salon_admin', 'salon_manager'];
+  if (!allowedRoles.includes(context.user.role)) {
+    throw new ForbiddenError('You do not have permission to modify salon settings');
+  }
+  
+  return true;
 };
 
+// Salon resolvers
 const salonResolvers = {
   Query: {
-    // Get all salons (system admin only)
-    salons: async (_, __, { user }) => {
-      if (!user || user.role !== 'system_admin') {
-        throw new ForbiddenError('Only system administrators can view all salons');
+    getSalon: async (_, { tenantId }, context) => {
+      try {
+        // For staff members, they can view but not edit
+        if (!context.user) {
+          throw new AuthenticationError('You must be logged in to view salon information');
+        }
+        
+        // Check if user has access to this tenant (staff can view)
+        if (context.user.tenantId !== tenantId && context.user.role !== 'system_admin') {
+          throw new ForbiddenError('You do not have permission to access this salon');
+        }
+        
+        const salon = await Salon.findByTenantId(tenantId);
+        if (!salon) {
+          throw new Error('Salon not found');
+        }
+        
+        return salon;
+      } catch (error) {
+        console.error('Error fetching salon:', error);
+        throw error;
       }
-      
-      return Salon.find({}).populate('owner');
     },
     
-    // Get a specific salon by tenant ID
-    salon: async (_, { tenantId }, { user }) => {
-      await validateSalonAccess(tenantId, user);
-      
-      const salon = await Salon.findOne({ tenantId }).populate('owner');
-      if (!salon) {
-        throw new UserInputError('Salon not found');
+    getPublicSalon: async (_, { slug }) => {
+      try {
+        const salon = await Salon.findBySlug(slug);
+        if (!salon) {
+          throw new Error('Salon not found');
+        }
+        
+        // Return only public information
+        return {
+          businessName: salon.businessName,
+          contactInfo: salon.contactInfo,
+          address: salon.address,
+          settings: {
+            businessHours: salon.settings.businessHours,
+            branding: salon.settings.branding
+          },
+          bookingPageConfig: {
+            pageTitle: salon.bookingPageConfig.pageTitle,
+            welcomeMessage: salon.bookingPageConfig.welcomeMessage,
+            displayOptions: {
+              showPrices: salon.bookingPageConfig.displayOptions.showPrices,
+              showDuration: salon.bookingPageConfig.displayOptions.showDuration,
+              enableClientLogin: salon.bookingPageConfig.displayOptions.enableClientLogin
+            },
+            seoSettings: salon.bookingPageConfig.seoSettings
+          }
+        };
+      } catch (error) {
+        console.error('Error fetching public salon:', error);
+        throw error;
       }
-      
-      return salon;
-    },
-    
-    // Get trial information for a salon
-    trialInfo: async (_, { tenantId }, { user }) => {
-      await validateSalonAccess(tenantId, user);
-      
-      const salon = await Salon.findOne({ tenantId });
-      if (!salon) {
-        throw new UserInputError('Salon not found');
-      }
-      
-      return {
-        isInTrial: salon.isInTrial(),
-        remainingDays: salon.getRemainingTrialDays()
-      };
-    },
-    
-    // Get all users for a specific tenant
-    tenantUsers: async (_, { tenantId }, { user }) => {
-      await validateSalonAccess(tenantId, user);
-      
-      return User.find({ tenantId });
     }
   },
   
   Mutation: {
-    // Register a new salon (first step of onboarding)
-    registerSalon: async (_, { input }) => {
-      const { businessName, ownerName, email, password, planId } = input;
-      
-      // Validate plan ID
-      if (!plans[planId]) {
-        throw new UserInputError('Invalid plan selected');
-      }
-      
-      // Check if email is already in use
-      const existingUser = await User.findOne({ email });
-      if (existingUser) {
-        throw new UserInputError('Email is already in use');
-      }
-      
+    updateSalonInfo: async (_, { tenantId, input }, context) => {
       try {
-        // Hash the password
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
+        // Check permissions
+        await checkSalonAccess(context, tenantId);
         
-        // Create a payment intent with Stripe
-        // In production, you'd include more details and proper error handling
-        const paymentIntent = await stripe.paymentIntents.create({
-          amount: plans[planId].price * 100, // Convert to cents
-          currency: 'usd',
-          metadata: { businessName, email, planId }
-        });
-        
-        // Store the pending salon registration
-        await PendingSalon.create({
-          businessName,
-          ownerName,
-          email,
-          hashedPassword,
-          planId,
-          paymentIntentId: paymentIntent.id,
-          status: 'pending_payment'
-        });
-        
-        // Return the client secret for completing the payment on the frontend
-        return paymentIntent.client_secret;
-      } catch (error) {
-        console.error('Error registering salon:', error);
-        throw new Error('Failed to register salon: ' + error.message);
-      }
-    },
-    
-    // Confirm salon registration after payment (usually called by webhook)
-    confirmSalonRegistration: async (_, { paymentIntentId }) => {
-      // Find the pending registration
-      const pendingSalon = await PendingSalon.findOne({ paymentIntentId });
-      if (!pendingSalon) {
-        throw new UserInputError('Invalid payment reference');
-      }
-      
-      try {
-        // Create the salon with a new tenant ID
-        const salon = new Salon({
-          businessName: pendingSalon.businessName,
-          plan: pendingSalon.planId,
-          status: pendingSalon.planId === 'free' ? 'active' : 'trial'
-        });
-        
-        // Save to get the generated tenant ID
-        await salon.save();
-        
-        // Create the salon admin user
-        const adminUser = new User({
-          name: pendingSalon.ownerName,
-          email: pendingSalon.email,
-          password: pendingSalon.hashedPassword, // Already hashed in registerSalon
-          tenantId: salon.tenantId,
-          role: 'salon_admin',
-          isVerified: true
-        });
-        
-        await adminUser.save();
-        
-        // Update the salon with the owner reference
-        salon.owner = adminUser._id;
-        await salon.save();
-        
-        // Create default roles for the tenant
-        await Role.createDefaultRoles(salon.tenantId, adminUser._id);
-        
-        // Remove the pending registration
-        await PendingSalon.findByIdAndDelete(pendingSalon._id);
-        
-        return true;
-      } catch (error) {
-        console.error('Error confirming salon registration:', error);
-        throw new Error('Failed to complete salon registration: ' + error.message);
-      }
-    },
-    
-    // Complete an onboarding step for a salon
-    completeSalonOnboardingStep: async (_, { input }, { user, tenantId }) => {
-      const { tenantId: stepTenantId, step, data } = input;
-      
-      // Verify the user has permission to update this salon
-      if (!user || user.tenantId !== stepTenantId) {
-        throw new ForbiddenError('You can only update your own salon');
-      }
-      
-      try {
-        const salon = await Salon.findOne({ tenantId: stepTenantId });
+        // Find the salon
+        const salon = await Salon.findByTenantId(tenantId);
         if (!salon) {
-          throw new UserInputError('Salon not found');
+          throw new Error('Salon not found');
         }
         
-        // Parse the step data (JSON string)
-        const stepData = JSON.parse(data);
+        // Update salon
+        const updatedSalon = await Salon.findByIdAndUpdate(
+          salon._id,
+          { $set: input },
+          { new: true, runValidators: true }
+        );
         
-        // Update the salon based on the step
-        switch (step) {
-          case 1: // Business details
-            if (stepData.businessHours) {
-              salon.settings.businessHours = stepData.businessHours;
-            }
-            if (stepData.serviceCategories) {
-              salon.settings.serviceCategories = stepData.serviceCategories;
-            }
-            salon.onboardingStatus.step1Completed = true;
-            break;
-            
-          case 2: // Branding
-            if (stepData.branding) {
-              salon.settings.branding = stepData.branding;
-            }
-            salon.onboardingStatus.step2Completed = true;
-            break;
-            
-          case 3: // Staff setup
-            // Staff setup is handled separately through user creation
-            salon.onboardingStatus.step3Completed = true;
-            break;
-            
-          case 4: // Final review
-            salon.onboardingStatus.step4Completed = true;
-            salon.onboardingStatus.completed = true;
-            break;
-            
-          default:
-            throw new UserInputError('Invalid onboarding step');
-        }
-        
-        await salon.save();
-        return true;
+        return updatedSalon;
       } catch (error) {
-        console.error('Error completing onboarding step:', error);
-        throw new Error('Failed to complete onboarding step: ' + error.message);
+        console.error('Error updating salon info:', error);
+        throw error;
       }
     },
     
-    // Update salon settings
-    updateSalonSettings: async (_, { tenantId, settings }, { user }) => {
-      await validateSalonAccess(tenantId, user);
-      
+    updateSalonBranding: async (_, { tenantId, branding }, context) => {
       try {
-        const salon = await Salon.findOne({ tenantId });
+        // Check permissions
+        await checkSalonAccess(context, tenantId);
+        
+        // Find the salon
+        const salon = await Salon.findByTenantId(tenantId);
         if (!salon) {
-          throw new UserInputError('Salon not found');
+          throw new Error('Salon not found');
         }
         
-        // Update settings
-        if (settings.businessHours) {
-          salon.settings.businessHours = settings.businessHours;
-        }
+        // Update branding
+        const updatedSalon = await Salon.findByIdAndUpdate(
+          salon._id,
+          { $set: { 'settings.branding': branding } },
+          { new: true, runValidators: true }
+        );
         
-        if (settings.serviceCategories) {
-          salon.settings.serviceCategories = settings.serviceCategories;
-        }
-        
-        if (settings.branding) {
-          salon.settings.branding = settings.branding;
-        }
-        
-        await salon.save();
-        return salon;
+        return updatedSalon;
       } catch (error) {
-        console.error('Error updating salon settings:', error);
-        throw new Error('Failed to update salon settings: ' + error.message);
+        console.error('Error updating salon branding:', error);
+        throw error;
       }
     },
     
-    // Create a staff member for a salon
-    createStaffMember: async (_, { tenantId, name, email, password, roleIds }, { user }) => {
-      await validateSalonAccess(tenantId, user);
-      
-      // Check if email is already in use
-      const existingUser = await User.findOne({ email });
-      if (existingUser) {
-        throw new UserInputError('Email is already in use');
-      }
-      
+    updateBusinessHours: async (_, { tenantId, businessHours }, context) => {
       try {
-        // Create the staff user
-        const staffUser = new User({
-          name,
-          email,
-          password, // Will be hashed by the User model's pre-save hook
-          tenantId,
-          role: 'stylist', // Default role
-          isVerified: true
+        // Check permissions
+        await checkSalonAccess(context, tenantId);
+        
+        // Find the salon
+        const salon = await Salon.findByTenantId(tenantId);
+        if (!salon) {
+          throw new Error('Salon not found');
+        }
+        
+        // Validate business hours format
+        const weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+        weekdays.forEach(day => {
+          if (!businessHours[day]) return;
+          
+          const { open, close, isOpen } = businessHours[day];
+          
+          // If closed, no need to validate times
+          if (isOpen === false) return;
+          
+          // Validate time format (HH:MM)
+          const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+          if (!timeRegex.test(open) || !timeRegex.test(close)) {
+            throw new UserInputError(`Invalid time format for ${day}. Use HH:MM format.`);
+          }
         });
         
-        await staffUser.save();
+        // Update business hours
+        const updatedSalon = await Salon.findByIdAndUpdate(
+          salon._id,
+          { $set: { 'settings.businessHours': businessHours } },
+          { new: true, runValidators: true }
+        );
         
-        // Assign custom roles if provided
-        if (roleIds && roleIds.length > 0) {
-          // Validate that all roles belong to this tenant
-          const roles = await Role.find({
-            _id: { $in: roleIds },
-            tenantId
-          });
-          
-          if (roles.length !== roleIds.length) {
-            throw new UserInputError('One or more invalid role IDs');
-          }
-          
-          // Assign roles
-          for (const role of roles) {
-            staffUser.customRoles.push({
-              name: role.name,
-              tenantId,
-              permissions: role.permissions
-            });
-          }
-          
-          await staffUser.save();
+        return updatedSalon;
+      } catch (error) {
+        console.error('Error updating business hours:', error);
+        throw error;
+      }
+    },
+    
+    updateBookingPageConfig: async (_, { tenantId, bookingConfig }, context) => {
+      try {
+        // Check permissions
+        await checkSalonAccess(context, tenantId);
+        
+        // Find the salon
+        const salon = await Salon.findByTenantId(tenantId);
+        if (!salon) {
+          throw new Error('Salon not found');
         }
         
-        return staffUser;
+        // Check if slug is being updated and if it's unique
+        if (bookingConfig.slug && bookingConfig.slug !== salon.bookingPageConfig?.slug) {
+          const slugExists = await Salon.findOne({ 'bookingPageConfig.slug': bookingConfig.slug });
+          
+          if (slugExists) {
+            throw new UserInputError('This URL slug is already taken. Please choose another.');
+          }
+        }
+        
+        // Update booking page configuration
+        const updatedSalon = await Salon.findByIdAndUpdate(
+          salon._id,
+          { $set: { 'bookingPageConfig': bookingConfig } },
+          { new: true, runValidators: true }
+        );
+        
+        return updatedSalon;
       } catch (error) {
-        console.error('Error creating staff member:', error);
-        throw new Error('Failed to create staff member: ' + error.message);
+        console.error('Error updating booking page config:', error);
+        throw error;
+      }
+    }
+  },
+  
+  // Field resolvers
+  Salon: {
+    owner: async (salon) => {
+      try {
+        const owner = await User.findById(salon.owner);
+        return owner;
+      } catch (error) {
+        console.error('Error fetching salon owner:', error);
+        throw error;
       }
     }
   }
 };
 
-module.exports = salonResolvers; 
+module.exports = salonResolvers;

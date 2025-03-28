@@ -7,12 +7,19 @@ const salonResolvers = require('./resolvers/salonResolvers');
 const roleResolvers = require('./resolvers/roleResolvers');
 const { getUser } = require('./middleware/authMiddleware');
 const { applyTenantIsolation, createApolloContext } = require('./middleware/tenantMiddleware');
+const express = require('express');
+const cors = require('cors');
 
 // Import all models to ensure they're registered before applying tenant isolation
 require('./models/User');
 require('./models/Salon');
 require('./models/Role');
 require('./models/PendingSalon');
+
+// Import routes
+const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
+const stylistRoutes = require('./routes/stylistRoutes');
 
 // MongoDB Connection
 mongoose.connect('mongodb://mongo-user:27017/userdb', {
@@ -74,3 +81,13 @@ const server = new ApolloServer({
 server.listen({ port: 5001 }).then(({ url }) => {
   console.log(`🚀 User Service ready with multi-tenant authentication at ${url}`);
 });
+
+// Apply middleware
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// Use routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/stylists', stylistRoutes);

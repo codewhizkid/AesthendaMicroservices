@@ -1,6 +1,7 @@
 const { gql } = require('apollo-server');
+const salonTypeDefs = require('./salonTypeDefs');
 
-const typeDefs = gql`
+const baseTypeDefs = gql`
   """
   User type with basic profile information
   """
@@ -16,6 +17,14 @@ const typeDefs = gql`
     phone: String
     oauthProviders: OAuthProviders
     createdAt: String
+    firstName: String!
+    lastName: String!
+    stylist_id: String
+    profile: UserProfile
+    services: [ServiceOffering]
+    isActive: Boolean
+    updatedAt: String
+    fullName: String
   }
 
   """
@@ -69,104 +78,6 @@ const typeDefs = gql`
   }
 
   """
-  Salon/Tenant information
-  """
-  type Salon {
-    id: ID!
-    businessName: String!
-    tenantId: String!
-    owner: User!
-    plan: SalonPlan!
-    status: SalonStatus!
-    settings: SalonSettings
-    subscription: SubscriptionInfo
-    onboardingStatus: OnboardingStatus
-    createdAt: String!
-  }
-
-  """
-  Salon business settings
-  """
-  type SalonSettings {
-    businessHours: BusinessHours
-    serviceCategories: [String]
-    branding: BrandingSettings
-  }
-  
-  """
-  Business hours configuration
-  """
-  type BusinessHours {
-    monday: DaySchedule
-    tuesday: DaySchedule
-    wednesday: DaySchedule
-    thursday: DaySchedule
-    friday: DaySchedule
-    saturday: DaySchedule
-    sunday: DaySchedule
-  }
-  
-  """
-  Day schedule
-  """
-  type DaySchedule {
-    open: String
-    close: String
-    isOpen: Boolean
-  }
-  
-  """
-  Branding settings for salon
-  """
-  type BrandingSettings {
-    logoUrl: String
-    primaryColor: String
-    secondaryColor: String
-    accentColor: String
-  }
-  
-  """
-  Subscription information
-  """
-  type SubscriptionInfo {
-    stripeCustomerId: String
-    planId: String
-    status: String
-    currentPeriodEnd: String
-  }
-  
-  """
-  Onboarding status tracking
-  """
-  type OnboardingStatus {
-    step1Completed: Boolean
-    step2Completed: Boolean
-    step3Completed: Boolean
-    step4Completed: Boolean
-    completed: Boolean
-  }
-
-  """
-  Available salon plans
-  """
-  enum SalonPlan {
-    free
-    basic
-    premium
-    enterprise
-  }
-
-  """
-  Salon status options
-  """
-  enum SalonStatus {
-    active
-    inactive
-    suspended
-    trial
-  }
-
-  """
   Available OAuth providers
   """
   enum OAuthProviderType {
@@ -189,6 +100,26 @@ const typeDefs = gql`
   type RefreshTokenResponse {
     token: String!
     success: Boolean!
+  }
+
+  """
+  Available salon plans
+  """
+  enum SalonPlan {
+    free
+    basic
+    premium
+    enterprise
+  }
+
+  """
+  Salon status options
+  """
+  enum SalonStatus {
+    active
+    inactive
+    suspended
+    trial
   }
 
   """
@@ -248,217 +179,94 @@ const typeDefs = gql`
     token: String!
     profile: String! # JSON stringified profile data
   }
-  
-  """
-  Input for salon settings update
-  """
-  input SalonSettingsInput {
-    businessHours: BusinessHoursInput
-    serviceCategories: [String]
-    branding: BrandingSettingsInput
-  }
-  
-  """
-  Input for business hours
-  """
-  input BusinessHoursInput {
-    monday: DayScheduleInput
-    tuesday: DayScheduleInput
-    wednesday: DayScheduleInput
-    thursday: DayScheduleInput
-    friday: DayScheduleInput
-    saturday: DayScheduleInput
-    sunday: DayScheduleInput
-  }
-  
-  """
-  Input for day schedule
-  """
-  input DayScheduleInput {
-    open: String
-    close: String
-    isOpen: Boolean
-  }
-  
-  """
-  Input for branding settings
-  """
-  input BrandingSettingsInput {
-    logoUrl: String
-    primaryColor: String
-    secondaryColor: String
-    accentColor: String
+
+  type UserProfile {
+    phoneNumber: String
+    title: String
+    bio: String
+    avatar: String
+    preferences: UserPreferences
   }
 
+  type UserPreferences {
+    language: String
+    notifications: NotificationPreferences
+    theme: String
+  }
+
+  type NotificationPreferences {
+    email: Boolean
+    sms: Boolean
+    push: Boolean
+  }
+
+  type ServiceOffering {
+    serviceId: ID
+    name: String!
+    duration: Int!
+    price: Float!
+  }
+
+  input ServiceOfferingInput {
+    serviceId: ID
+    name: String!
+    duration: Int!
+    price: Float!
+  }
+
+  input UserProfileInput {
+    phoneNumber: String
+    title: String
+    bio: String
+    avatar: String
+    preferences: UserPreferencesInput
+  }
+
+  input UserPreferencesInput {
+    language: String
+    notifications: NotificationPreferencesInput
+    theme: String
+  }
+
+  input NotificationPreferencesInput {
+    email: Boolean
+    sms: Boolean
+    push: Boolean
+  }
+
+  input StylistProfileUpdateInput {
+    role: String
+    profile: UserProfileInput
+    services: [ServiceOfferingInput]
+    isActive: Boolean
+  }
+
+  type AuthPayload {
+    token: String!
+    refreshToken: String!
+    user: User!
+  }
+
+  # Base types for extending in other schema files
   type Query {
-    """
-    Get the currently authenticated user
-    """
+    _empty: String
     me: User
-
-    """
-    Get all users (admin only)
-    """
-    users: [User]!
-
-    """
-    Get users by specific role (admin only)
-    """
-    usersByRole(role: SystemRole!): [User]!
-
-    """
-    Get a specific user by ID (admin only)
-    """
     user(id: ID!): User
-    
-    """
-    Get all salons (system admin only)
-    """
-    salons: [Salon]!
-    
-    """
-    Get a specific salon by tenant ID (system admin or salon admin only)
-    """
-    salon(tenantId: String!): Salon
-    
-    """
-    Get trial information for a salon
-    """
-    trialInfo(tenantId: String!): TrialInfo!
-    
-    """
-    Get all users for a specific tenant (salon admin only)
-    """
-    tenantUsers(tenantId: String!): [User]!
-    
-    """
-    Get all roles for a specific tenant
-    """
-    tenantRoles(tenantId: String!): [Role]!
-    
-    """
-    Get a specific role by ID
-    """
-    role(id: ID!): Role
-    
-    """
-    Get all available permissions that can be assigned to roles
-    """
-    availablePermissions: [String!]!
+    userByStylistId(stylist_id: String!, tenantId: String): User
+    stylistsByTenant(tenantId: String): [User]
   }
 
   type Mutation {
-    """
-    Register a new user
-    """
-    register(input: RegisterInput!): AuthResponse!
-
-    """
-    Login an existing user
-    """
-    login(email: String!, password: String!): AuthResponse!
-
-    """
-    Authenticate with OAuth
-    """
-    oauthLogin(input: OAuthInput!): AuthResponse!
-
-    """
-    Connect an OAuth provider to an existing account (must be authenticated)
-    """
-    connectOAuthProvider(input: OAuthInput!): User!
-
-    """
-    Disconnect an OAuth provider from an account (must be authenticated)
-    """
-    disconnectOAuthProvider(provider: OAuthProviderType!): User!
-
-    """
-    Refresh an expired access token using a refresh token
-    """
-    refreshToken(refreshToken: String!): RefreshTokenResponse!
-
-    """
-    Logout user (invalidate refresh token)
-    """
-    logout(refreshToken: String!): Boolean!
-
-    """
-    Logout from all devices (invalidate all refresh tokens)
-    """
-    logoutAll: Boolean!
-
-    """
-    Update a user's role (admin only)
-    """
-    updateUserRole(userId: ID!, role: SystemRole!): User!
-
-    """
-    Update current user's profile
-    """
-    updateProfile(name: String, email: String, password: String, phone: String, profileImage: String): User!
-
-    """
-    Delete a user (admin only or self)
-    """
-    deleteUser(userId: ID!): Boolean!
-    
-    """
-    Register a new salon (creates tenant)
-    """
-    registerSalon(input: SalonRegistrationInput!): String! # Returns paymentIntentClientSecret
-    
-    """
-    Confirm salon registration after payment (webhook)
-    """
-    confirmSalonRegistration(paymentIntentId: String!): Boolean!
-    
-    """
-    Complete an onboarding step for a salon
-    """
-    completeSalonOnboardingStep(input: OnboardingStepInput!): Boolean!
-    
-    """
-    Update salon settings
-    """
-    updateSalonSettings(tenantId: String!, settings: SalonSettingsInput!): Salon!
-    
-    """
-    Create a new role for a tenant
-    """
-    createRole(input: RoleInput!): Role!
-    
-    """
-    Update an existing role
-    """
-    updateRole(id: ID!, input: RoleInput!): Role!
-    
-    """
-    Delete a role
-    """
-    deleteRole(id: ID!): Boolean!
-    
-    """
-    Assign a role to a user
-    """
-    assignRoleToUser(userId: ID!, roleId: ID!): User!
-    
-    """
-    Remove a role from a user
-    """
-    removeRoleFromUser(userId: ID!, roleId: ID!): User!
-    
-    """
-    Create a staff member for a salon
-    """
-    createStaffMember(
-      tenantId: String!, 
-      name: String!, 
-      email: String!, 
-      password: String, 
-      roleIds: [ID!]
-    ): User!
+    _empty: String
+    register(email: String!, password: String!, firstName: String!, lastName: String!): AuthPayload
+    login(email: String!, password: String!): AuthPayload
+    refreshToken(refreshToken: String!): AuthPayload
+    updateProfile(id: ID!, profile: UserProfileInput!): User
+    updateStylistProfile(id: ID!, input: StylistProfileUpdateInput!): User
   }
 `;
+
+// Combine the base typeDefs with the salon typeDefs
+const typeDefs = [baseTypeDefs, salonTypeDefs];
 
 module.exports = typeDefs;

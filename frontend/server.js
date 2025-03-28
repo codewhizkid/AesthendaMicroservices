@@ -41,6 +41,11 @@ app.get('/salon-register', (req, res) => {
   res.sendFile(path.join(__dirname, 'salon-register.html'));
 });
 
+// Admin panel route
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
 // OAuth proxy routes - forward to API Gateway
 app.get('/api/auth/:provider', (req, res) => {
   const provider = req.params.provider;

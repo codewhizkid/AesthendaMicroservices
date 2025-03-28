@@ -29,6 +29,55 @@ const SalonSchema = new mongoose.Schema({
     enum: ['active', 'inactive', 'suspended', 'trial'],
     default: 'trial'
   },
+  contactInfo: {
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please provide a valid email']
+    },
+    phone: {
+      type: String,
+      trim: true
+    },
+    website: {
+      type: String,
+      trim: true
+    },
+    socialMedia: {
+      facebook: String,
+      instagram: String,
+      twitter: String,
+      linkedin: String
+    }
+  },
+  address: {
+    street: {
+      type: String,
+      trim: true
+    },
+    city: {
+      type: String,
+      trim: true
+    },
+    state: {
+      type: String,
+      trim: true
+    },
+    zipCode: {
+      type: String,
+      trim: true
+    },
+    country: {
+      type: String,
+      trim: true,
+      default: 'US'
+    },
+    coordinates: {
+      latitude: Number,
+      longitude: Number
+    }
+  },
   settings: {
     businessHours: {
       monday: { open: String, close: String, isOpen: Boolean },
@@ -42,10 +91,53 @@ const SalonSchema = new mongoose.Schema({
     serviceCategories: [String],
     branding: {
       logoUrl: String,
+      favicon: String,
       primaryColor: String,
       secondaryColor: String,
-      accentColor: String
+      accentColor: String,
+      fontFamily: String,
+      customCSS: String
+    },
+    notifications: {
+      emailEnabled: { type: Boolean, default: true },
+      smsEnabled: { type: Boolean, default: false },
+      reminderHours: { type: Number, default: 24 }
     }
+  },
+  bookingPageConfig: {
+    slug: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      unique: true
+    },
+    pageTitle: {
+      type: String,
+      trim: true
+    },
+    welcomeMessage: {
+      type: String,
+      trim: true
+    },
+    thankYouMessage: {
+      type: String,
+      trim: true
+    },
+    displayOptions: {
+      showPrices: { type: Boolean, default: true },
+      showDuration: { type: Boolean, default: true },
+      enableClientLogin: { type: Boolean, default: true },
+      requireDeposit: { type: Boolean, default: false },
+      depositAmount: { type: Number, default: 0 },
+      maxBookingWindow: { type: Number, default: 60 }, // Days in advance clients can book
+      minNoticeTime: { type: Number, default: 1 } // Hours of notice required
+    },
+    seoSettings: {
+      metaDescription: String,
+      metaKeywords: String,
+      ogImage: String
+    },
+    customDomain: String
   },
   subscription: {
     stripeCustomerId: String,
@@ -63,8 +155,12 @@ const SalonSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
   }
-});
+}, { timestamps: { updatedAt: 'updatedAt' } });
 
 // Method to check if salon is in trial period
 SalonSchema.methods.isInTrial = function() {
@@ -93,6 +189,11 @@ SalonSchema.methods.getRemainingTrialDays = function() {
 // Static method to find a salon by tenantId
 SalonSchema.statics.findByTenantId = function(tenantId) {
   return this.findOne({ tenantId });
+};
+
+// Static method to find a salon by its booking page slug
+SalonSchema.statics.findBySlug = function(slug) {
+  return this.findOne({ 'bookingPageConfig.slug': slug });
 };
 
 module.exports = mongoose.model('Salon', SalonSchema); 
