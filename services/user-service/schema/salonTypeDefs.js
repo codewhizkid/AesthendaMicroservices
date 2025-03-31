@@ -258,4 +258,4 @@ const salonTypeDefs = gql`
   }
 `;
 
-module.exports = salonTypeDefs; 
+module.exports = salonTypeDefs;

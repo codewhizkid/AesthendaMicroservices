@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useAuth } from './AuthContext';
-import { getTenantData, salons } from '../api/mockData';
+import { getTenantData, getStylistAppointments } from '../api/mockData';
 
 // Create the tenant context
 const TenantContext = createContext();
@@ -12,122 +12,115 @@ export const useTenant = () => {
 
 // Provider component to wrap the app and provide tenant state
 export const TenantProvider = ({ children }) => {
-  const { currentUser } = useAuth();
-  const [currentTenant, setCurrentTenant] = useState(null);
+  const { currentUser, isAuthenticated } = useAuth();
   const [tenantData, setTenantData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(null);
+  const [appointments, setAppointments] = useState([]);
 
-  // Effect to fetch tenant data when the user changes
+  // Fetch tenant data when user authentication changes
   useEffect(() => {
     const fetchTenantData = async () => {
+      if (!isAuthenticated || !currentUser?.tenantId) {
+        setTenantData(null);
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        setError('');
+        setError(null);
         
-        if (!currentUser || !currentUser.tenantId) {
-          setCurrentTenant(null);
-          setTenantData(null);
-          return;
-        }
-        
-        // Find the salon for this tenant
-        const salon = salons.find(s => s.tenantId === currentUser.tenantId);
-        
-        if (!salon) {
-          setError('Tenant not found');
-          return;
-        }
-        
-        setCurrentTenant(salon);
-        
-        // Get all data for this tenant
+        // For demo purposes, we get tenant data from our mock data
         const data = getTenantData(currentUser.tenantId);
-        setTenantData(data);
+        
+        if (data) {
+          setTenantData(data);
+          
+          // If the user is a stylist, fetch their appointments
+          if (currentUser.role === 'stylist' && currentUser.stylist_id) {
+            const stylistAppointments = getStylistAppointments(
+              currentUser.tenantId, 
+              currentUser.stylist_id
+            );
+            setAppointments(stylistAppointments);
+          }
+          // If the user is a salon admin, they would see all appointments
+          else if (currentUser.role === 'salon_admin') {
+            // In a real app, this would be a different API call to get all tenant appointments
+            // For demo, we'll use the same function but with no stylist_id filter
+            const allAppointments = getStylistAppointments(currentUser.tenantId);
+            setAppointments(allAppointments);
+          }
+        } else {
+          console.error('No tenant data found for ID:', currentUser.tenantId);
+          setError('Tenant data not found');
+        }
       } catch (err) {
         console.error('Error fetching tenant data:', err);
-        setError('Failed to load salon data');
+        setError('Failed to load tenant data');
       } finally {
         setLoading(false);
       }
     };
 
     fetchTenantData();
-  }, [currentUser]);
+  }, [isAuthenticated, currentUser]);
 
-  // Get tenant primary color with fallback
+  // Helper functions to get tenant-specific values
   const getPrimaryColor = () => {
-    return currentTenant?.settings?.branding?.primaryColor || '#0ea5e9'; // Default blue if no tenant
+    return tenantData?.branding?.primaryColor || '#0EA5E9';
   };
 
-  // Get tenant secondary color with fallback
   const getSecondaryColor = () => {
-    return currentTenant?.settings?.branding?.secondaryColor || '#64748b'; // Default gray if no tenant
+    return tenantData?.branding?.secondaryColor || '#6366F1';
   };
 
-  // Get tenant font family with fallback
   const getFontFamily = () => {
-    return currentTenant?.settings?.branding?.fontFamily || 'Inter, sans-serif';
+    return tenantData?.branding?.fontFamily || 'Inter, sans-serif';
   };
 
-  // Apply tenant styles to the document
+  // Set CSS variables for tenant branding when tenant data changes
   useEffect(() => {
-    if (currentTenant?.settings?.branding) {
-      const { primaryColor, secondaryColor, fontFamily } = currentTenant.settings.branding;
+    if (tenantData?.branding) {
+      const { primaryColor, secondaryColor, fontFamily, textColor, backgroundColor } = tenantData.branding;
       
-      // Create a style element to inject the CSS variables
-      const style = document.createElement('style');
-      style.innerHTML = `
-        :root {
-          --color-primary: ${primaryColor || '#0ea5e9'};
-          --color-secondary: ${secondaryColor || '#64748b'};
-          --font-family: ${fontFamily || 'Inter, sans-serif'};
-        }
-        
-        body {
-          font-family: var(--font-family);
-        }
-      `;
+      // Set CSS custom properties for tenant branding
+      document.documentElement.style.setProperty('--tenant-primary', primaryColor || '#0EA5E9');
+      document.documentElement.style.setProperty('--tenant-secondary', secondaryColor || '#6366F1');
+      document.documentElement.style.setProperty('--tenant-bg', backgroundColor || '#F9FAFB');
+      document.documentElement.style.setProperty('--tenant-text', textColor || '#1F2937');
+      document.documentElement.style.setProperty('--tenant-font-family', fontFamily || 'Inter, sans-serif');
       
-      // Add the style to the head
-      document.head.appendChild(style);
-      
-      // Clean up on unmount
-      return () => {
-        document.head.removeChild(style);
-      };
+      // You could also dynamically load fonts here if needed
     }
-  }, [currentTenant]);
+  }, [tenantData]);
 
-  // Function to get tenant-specific data based on the type
+  // Get tenant-specific resource (like images, logos, etc.)
   const getTenantResource = (resourceType) => {
-    if (!tenantData) return [];
+    if (!tenantData?.resources) return null;
     
     switch (resourceType) {
-      case 'staff':
-        return tenantData.staff || [];
-      case 'services':
-        return tenantData.services || [];
-      case 'appointments':
-        return tenantData.appointments || [];
+      case 'logo':
+        return tenantData.resources.logo || '/placeholder-logo.svg';
+      case 'banner':
+        return tenantData.resources.banner || '/placeholder-banner.jpg';
       default:
-        return [];
+        return null;
     }
   };
 
-  // Function to get stylist-specific appointments
+  // Provide appointments specific to the tenant
   const getStylistAppointments = () => {
-    if (!tenantData || !currentUser || !currentUser.stylist_id) return [];
-    
-    return tenantData.appointments.filter(a => a.stylist_id === currentUser.stylist_id);
+    return appointments;
   };
 
-  // Value to provide in the context
   const value = {
-    currentTenant,
     tenantData,
     loading,
     error,
+    currentTenantId: currentUser?.tenantId,
+    appointments,
     getPrimaryColor,
     getSecondaryColor,
     getFontFamily,
@@ -135,11 +128,7 @@ export const TenantProvider = ({ children }) => {
     getStylistAppointments
   };
 
-  return (
-    <TenantContext.Provider value={value}>
-      {children}
-    </TenantContext.Provider>
-  );
+  return <TenantContext.Provider value={value}>{children}</TenantContext.Provider>;
 };
 
 export default TenantContext; 

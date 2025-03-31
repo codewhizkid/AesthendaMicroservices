@@ -29,3 +29,33 @@ dist-ssr
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Tailwind config
+tailwind.config.js
+
+# Tailwind output
+dist/
+
+# Build output
+build/
+
+# Static files
+static/
+
+# Local files
+local/
+
+# Docker files
+docker-compose.override.yml
+
+# Frontend files
+frontend/
+
+# Backend files
+backend/
+
+# Services
+services/
+
+# Tenant-specific files
+tenant-*/

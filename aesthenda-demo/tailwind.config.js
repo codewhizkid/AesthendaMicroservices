@@ -2,37 +2,34 @@
 export default {
   content: [
     "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
+    "./src/**/*.{js,jsx}"
   ],
   theme: {
     extend: {
       colors: {
-        // Default branding colors - will be overridden by tenant branding
-        primary: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          200: '#bae6fd',
-          300: '#7dd3fc',
-          400: '#38bdf8',
-          500: '#0ea5e9',
-          600: '#0284c7',
-          700: '#0369a1',
-          800: '#075985',
-          900: '#0c4a6e',
-        },
-        secondary: {
-          50: '#f8fafc',
-          100: '#f1f5f9',
-          200: '#e2e8f0',
-          300: '#cbd5e1',
-          400: '#94a3b8',
-          500: '#64748b',
-          600: '#475569',
-          700: '#334155',
-          800: '#1e293b',
-          900: '#0f172a',
-        }
-      }
+        // Base colors
+        primary: 'var(--color-primary, #A9A29A)',
+        secondary: 'var(--color-secondary, #BEBCBB)',
+        accent: 'var(--color-accent, #C0A371)',
+        
+        // Brand colors
+        'brand-gray-dark': '#A9A29A',
+        'brand-gray-medium': '#BEBCBB',
+        'brand-gray-light': '#D2D0D1',
+        'brand-gold': '#C0A371',
+        
+        // Tenant-specific variables that will be dynamically set
+        'tenant-primary': 'var(--tenant-primary, #A9A29A)',
+        'tenant-secondary': 'var(--tenant-secondary, #BEBCBB)',
+        'tenant-accent': 'var(--tenant-accent, #C0A371)',
+        'tenant-bg': 'var(--tenant-bg, #FFFFFF)',
+        'tenant-text': 'var(--tenant-text, #333333)',
+      },
+      fontFamily: {
+        'tenant': ['var(--tenant-font-family)', 'Poppins', 'sans-serif'],
+        'sans': ['Poppins', 'sans-serif'],
+        'serif': ['Cormorant Garamond', 'serif'],
+      },
     },
   },
   plugins: [],

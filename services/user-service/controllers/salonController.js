@@ -309,4 +309,4 @@ exports.getSalonBySlug = async (req, res) => {
       error: config.server.isDev ? error.message : undefined
     });
   }
-}; 
+};
