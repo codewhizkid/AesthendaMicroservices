@@ -1,0 +1,10 @@
+---
+description: insure every operation (like booking an appointment) is tagged with the tenant ID so updates propagate correctly across the admin dashboard, client booking page, and staff calendars.Use RabbitMQ to publish events (like “appointment created” or “profile updated”) that update all relevant parts of the system in real time.Use GraphQL’s schema as your single source of truth for data exchange, ensuring all services communicate consistently.
+globs: 
+alwaysApply: false
+---
+
+# Your rule content
+
+- You can @ files here
+- You can use markdown but dont have to

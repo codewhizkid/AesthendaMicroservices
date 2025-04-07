@@ -191,4 +191,4 @@ export default {
   sendTemplatedEmail,
   sendWelcomeEmail,
   sendPasswordResetEmail
-}; 
+};

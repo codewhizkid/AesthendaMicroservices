@@ -1,0 +1,10 @@
+---
+description: 	GraphQL Schemas as Contracts: Use GraphQL schemas to define a clear contract for data exchange. Ensure that every microservice adheres to these schemas, which promotes consistency in how data is structured and retrieved. 	•	Consistent Error Formats: Implement standardized error handling across services. All APIs should return errors in a consistent format so that the front end can display friendly error messages reliably.
+globs: 
+alwaysApply: false
+---
+
+# Your rule content
+
+- You can @ files here
+- You can use markdown but dont have to

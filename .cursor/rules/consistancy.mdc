@@ -1,0 +1,10 @@
+---
+description: 	Unified State Management: Ensure that your front end uses a centralized state (via Context API or Redux) to manage user authentication, tenant data, and configuration. This ensures that all components have access to consistent data. 	•	Design Consistency: Follow a consistent design system and component library (using Tailwind CSS) so that all front-end components, from the client booking widget to the admin dashboard, look and behave uniformly.
+globs: 
+alwaysApply: false
+---
+
+# Your rule content
+
+- You can @ files here
+- You can use markdown but dont have to

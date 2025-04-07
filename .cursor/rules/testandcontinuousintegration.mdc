@@ -1,0 +1,11 @@
+---
+description: Unit and Integration Tests: Write tests that cover all critical pathways, including tenant isolation, role-based access, and data flows. End-to-end tests can simulate a complete booking flow, ensuring that changes in one module reflect correctly across the system. 	•	Automated CI/CD: Use continuous integration tools (e.g., GitHub Actions) to run your tests on every commit. This helps catch inconsistencies or integration issues early.
+globs: 
+alwaysApply: false
+---
+
+# Your rule content
+
+- You can @ files here
+- You can use markdown but dont have to
+

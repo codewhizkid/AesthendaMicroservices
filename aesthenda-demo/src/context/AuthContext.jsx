@@ -1,14 +1,10 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import axios from 'axios';
-import { users } from '../api/mockData'; // Import mock users for fallback
+import api from '../api';
+import { STORAGE_KEYS, ENABLE_MOCK_API } from '../config';
 import { sendWelcomeEmail } from '../utils/emailService';
 
 // Create context
 const AuthContext = createContext();
-
-// API base URL 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API === 'true' || true; // Default to mock for demo
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
@@ -16,16 +12,13 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Configure axios defaults
-  axios.defaults.withCredentials = true; // Allow cookies for sessions
-
   // Check if the user is already logged in when the app loads
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
         setLoading(true);
         
-        if (USE_MOCK_API) {
+        if (ENABLE_MOCK_API) {
           // Check local storage for saved mock user
           const savedUser = localStorage.getItem('mock_user');
           if (savedUser) {
@@ -37,16 +30,35 @@ export const AuthProvider = ({ children }) => {
           return;
         }
         
-        // Try to get the current user from the server
-        const response = await axios.get(`${API_URL}/auth/me`);
+        // Try to get the current user using our auth service
+        const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
         
-        if (response.data && response.data.user) {
-          setCurrentUser(response.data.user);
+        if (!token) {
+          setIsAuthenticated(false);
+          setLoading(false);
+          return;
+        }
+        
+        const isValid = await api.auth.verifyToken();
+        
+        if (!isValid) {
+          // Clear invalid token
+          localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+          setIsAuthenticated(false);
+          setLoading(false);
+          return;
+        }
+        
+        const result = await api.auth.getCurrentUser();
+        
+        if (result.success && result.user) {
+          setCurrentUser(result.user);
           setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(false);
         }
       } catch (err) {
-        console.log('Not authenticated');
-        // If there's an error, the user is not authenticated
+        console.error('Auth check error:', err);
         setCurrentUser(null);
         setIsAuthenticated(false);
       } finally {
@@ -57,34 +69,14 @@ export const AuthProvider = ({ children }) => {
     checkAuthStatus();
   }, []);
 
-  // Function to set tokens in local storage (for JWT authentication)
-  const setAuthTokens = (tokens) => {
-    if (tokens?.accessToken) {
-      localStorage.setItem('accessToken', tokens.accessToken);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${tokens.accessToken}`;
-    }
-    
-    if (tokens?.refreshToken) {
-      localStorage.setItem('refreshToken', tokens.refreshToken);
-    }
-  };
-
-  // Function to remove tokens from local storage
-  const clearAuthTokens = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('mock_user');
-    delete axios.defaults.headers.common['Authorization'];
-  };
-
   // Login functionality
-  const login = async (email, password) => {
+  const login = async (email, password, firstName = '', lastName = '') => {
     try {
       setError(null);
       
-      if (USE_MOCK_API) {
+      if (ENABLE_MOCK_API) {
         // Mock authentication logic
-        const user = users.find(u => u.email === email && u.password === password);
+        const user = api.mock.users.find(u => u.email === email && u.password === password);
         
         if (!user) {
           setError('Invalid email or password');
@@ -93,6 +85,16 @@ export const AuthProvider = ({ children }) => {
         
         // Store user in local storage but remove the password
         const { password: _, ...safeUser } = user;
+        
+        // If first name and last name are provided and the user doesn't have them, add them
+        if (firstName && !safeUser.firstName) {
+          safeUser.firstName = firstName;
+        }
+        
+        if (lastName && !safeUser.lastName) {
+          safeUser.lastName = lastName;
+        }
+        
         localStorage.setItem('mock_user', JSON.stringify(safeUser));
         
         setCurrentUser(safeUser);
@@ -100,26 +102,20 @@ export const AuthProvider = ({ children }) => {
         return true;
       }
       
-      // Real API call
-      const response = await axios.post(`${API_URL}/auth/login`, {
-        email,
-        password,
-      });
+      // Use the auth service for login
+      const result = await api.auth.login(email, password, firstName, lastName);
       
-      const { user, tokens } = response.data;
-      
-      setCurrentUser(user);
-      setIsAuthenticated(true);
-      
-      // If using JWT authentication
-      if (tokens) {
-        setAuthTokens(tokens);
+      if (result.success && result.user) {
+        setCurrentUser(result.user);
+        setIsAuthenticated(true);
+        return true;
+      } else {
+        setError(result.error || 'Login failed. Please check your credentials.');
+        return false;
       }
-      
-      return true;
     } catch (err) {
       console.error('Login error:', err);
-      setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
+      setError(err.message || 'Login failed. Please try again.');
       return false;
     }
   };
@@ -129,9 +125,8 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null);
       
-      if (USE_MOCK_API) {
+      if (ENABLE_MOCK_API) {
         // Simple mock registration - just simulate success
-        // In a real app, you would validate and store the new user
         const mockUser = {
           id: 'new-' + Date.now(),
           email: userData.email,
@@ -160,38 +155,39 @@ export const AuthProvider = ({ children }) => {
         };
       }
       
-      // Real API call
-      const response = await axios.post(`${API_URL}/auth/register`, userData);
+      // Use the auth service for registration
+      const result = await api.auth.register(userData);
       
-      const { user, tokens } = response.data;
-      
-      setCurrentUser(user);
-      setIsAuthenticated(true);
-      
-      // If using JWT authentication
-      if (tokens) {
-        setAuthTokens(tokens);
+      if (result.success && result.user) {
+        setCurrentUser(result.user);
+        setIsAuthenticated(true);
+        
+        // Send welcome email
+        try {
+          await sendWelcomeEmail(result.user);
+        } catch (emailError) {
+          console.error('Failed to send welcome email:', emailError);
+          // Don't fail registration if email fails
+        }
+        
+        return {
+          success: true,
+          user: result.user,
+          registrationCompleted: true
+        };
+      } else {
+        setError(result.error || 'Registration failed. Please try again.');
+        return {
+          success: false,
+          error: result.error || 'Registration failed'
+        };
       }
-      
-      // Send welcome email
-      try {
-        await sendWelcomeEmail(user);
-      } catch (emailError) {
-        console.error('Failed to send welcome email:', emailError);
-        // Don't fail registration if email fails
-      }
-      
-      return {
-        success: true,
-        user,
-        registrationCompleted: true
-      };
     } catch (err) {
       console.error('Registration error:', err);
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+      setError(err.message || 'Registration failed. Please try again.');
       return {
         success: false,
-        error: err.response?.data?.message || 'Registration failed'
+        error: err.message || 'Registration failed'
       };
     }
   };
@@ -199,36 +195,31 @@ export const AuthProvider = ({ children }) => {
   // Logout functionality
   const logout = async () => {
     try {
-      if (!USE_MOCK_API) {
-        await axios.post(`${API_URL}/auth/logout`);
+      if (!ENABLE_MOCK_API) {
+        // Use the auth service for logout
+        await api.auth.logout();
       }
       
+      // Always clear local data
+      localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+      localStorage.removeItem('mock_user');
+      
+      // Update state
       setCurrentUser(null);
       setIsAuthenticated(false);
-      clearAuthTokens();
+      setError(null);
       
       return true;
     } catch (err) {
       console.error('Logout error:', err);
-      
-      // Even if server logout fails, clear local state
+      // Still clear the user from state even if server logout fails
       setCurrentUser(null);
       setIsAuthenticated(false);
-      clearAuthTokens();
-      
       return false;
     }
   };
 
-  // For development/demo purposes, provide a method to simulate login without backend
-  const simulateLogin = (user) => {
-    setCurrentUser(user);
-    setIsAuthenticated(true);
-    localStorage.setItem('mock_user', JSON.stringify(user));
-    return true;
-  };
-
-  // Value object to be provided through the context
+  // Export the context value
   const value = {
     currentUser,
     loading,
@@ -237,7 +228,7 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
-    simulateLogin,
+    setError
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -252,4 +243,4 @@ export const useAuth = () => {
   return context;
 };
 
-export default AuthContext; 
+export default AuthContext;

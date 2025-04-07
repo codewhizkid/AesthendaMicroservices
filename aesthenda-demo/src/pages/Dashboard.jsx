@@ -2,18 +2,44 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTenant } from '../context/TenantContext';
 import DashboardLayout from '../components/dashboard/DashboardLayout';
-import { getServiceById } from '../api/mockData';
+import api from '../api';
+import { ENABLE_MOCK_API } from '../config';
 
 // Appointment card component
 const AppointmentCard = ({ appointment }) => {
   const [service, setService] = useState(null);
+  const [loading, setLoading] = useState(true);
   
   // Load service details
   useEffect(() => {
-    if (appointment.serviceId) {
-      const serviceDetails = getServiceById(appointment.serviceId);
-      setService(serviceDetails);
-    }
+    const fetchServiceDetails = async () => {
+      if (!appointment.serviceId) {
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        setLoading(true);
+        
+        if (ENABLE_MOCK_API) {
+          // Use mock data
+          const serviceDetails = api.mock.getServiceById(appointment.serviceId);
+          setService(serviceDetails);
+        } else {
+          // Use real API
+          const result = await api.tenant.getServiceById(appointment.serviceId);
+          if (result.success) {
+            setService(result.data);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching service details:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchServiceDetails();
   }, [appointment.serviceId]);
   
   // Format time function
@@ -54,7 +80,9 @@ const AppointmentCard = ({ appointment }) => {
       </div>
       
       <div className="mt-2">
-        {service ? (
+        {loading ? (
+          <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4"></div>
+        ) : service ? (
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-800">{service.name}</p>
@@ -62,7 +90,7 @@ const AppointmentCard = ({ appointment }) => {
             </div>
           </div>
         ) : (
-          <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4"></div>
+          <p className="text-sm text-gray-500">Service information unavailable</p>
         )}
       </div>
       
@@ -143,4 +171,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard; 
+export default Dashboard;

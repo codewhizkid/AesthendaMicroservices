@@ -7,6 +7,8 @@ const Payment = () => {
   const navigate = useNavigate();
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [promoCode, setPromoCode] = useState('');
+  const [promoApplied, setPromoApplied] = useState(false);
   const [formData, setFormData] = useState({
     cardNumber: '',
     cardName: '',
@@ -65,7 +67,50 @@ const Payment = () => {
     }
   };
 
+  const handlePromoCodeChange = (e) => {
+    setPromoCode(e.target.value);
+    
+    // Clear promo message if user edits the code after applying
+    if (promoApplied) {
+      setPromoApplied(false);
+    }
+  };
+
+  const applyPromoCode = () => {
+    if (!promoCode.trim()) {
+      setErrors({
+        ...errors,
+        promoCode: 'Please enter a promo code'
+      });
+      return;
+    }
+    
+    if (promoCode.toUpperCase() === 'FREEFREE') {
+      setPromoApplied(true);
+      setErrors({
+        ...errors,
+        promoCode: undefined
+      });
+    } else {
+      setErrors({
+        ...errors,
+        promoCode: 'Invalid promo code'
+      });
+    }
+  };
+
   const validateForm = () => {
+    // If promo code FREEFREE is applied, no need to validate payment fields
+    if (promoApplied) {
+      if (!formData.agreeTerms) {
+        setErrors({
+          agreeTerms: 'You must agree to the terms and conditions'
+        });
+        return false;
+      }
+      return true;
+    }
+    
     const newErrors = {};
     
     if (!formData.cardNumber.trim()) {
@@ -124,15 +169,22 @@ const Payment = () => {
     setIsLoading(true);
     
     try {
-      // In a real app, this would process the payment
-      // Simulate API call with setTimeout
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // If promo code is applied, skip payment processing
+      if (!promoApplied) {
+        // In a real app, this would process the payment
+        // Simulate API call with setTimeout
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      } else {
+        // Just a short delay for visual feedback when using promo
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
       
       // Store tenant info with plan details
       localStorage.setItem('tenant_plan', JSON.stringify({
         planId: localStorage.getItem('selected_plan'),
         subscriptionDate: new Date().toISOString(),
-        status: 'active'
+        status: 'active',
+        promoApplied: promoApplied
       }));
       
       // Navigate to onboarding
@@ -170,164 +222,197 @@ const Payment = () => {
             <div className="md:col-span-2">
               <h2 className="font-serif text-xl mb-6">Payment Details</h2>
               
+              {/* Promo Code Section */}
+              <div className="mb-8 p-4 bg-gray-50 border border-gray-200 rounded-sm">
+                <h3 className="font-medium text-gray-700 mb-2">Have a Promo Code?</h3>
+                <div className="flex">
+                  <input
+                    type="text"
+                    value={promoCode}
+                    onChange={handlePromoCodeChange}
+                    placeholder="Enter promo code"
+                    className={`flex-1 p-2 border ${errors.promoCode ? 'border-red-500' : 'border-gray-300'}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={applyPromoCode}
+                    className="ml-2 px-4 py-2 bg-[#C0A371] hover:bg-[#b0946a] text-white"
+                  >
+                    Apply
+                  </button>
+                </div>
+                {errors.promoCode && (
+                  <p className="text-red-500 text-xs mt-1">{errors.promoCode}</p>
+                )}
+                {promoApplied && (
+                  <div className="mt-2 p-2 bg-green-50 text-green-700 text-sm border border-green-200 rounded-sm">
+                    Promo code FREEFREE applied successfully! Your plan is now free.
+                  </div>
+                )}
+              </div>
+              
               <form onSubmit={handleSubmit}>
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Card Number
-                  </label>
-                  <input
-                    type="text"
-                    name="cardNumber"
-                    value={formData.cardNumber}
-                    onChange={handleChange}
-                    placeholder="1234 5678 9012 3456"
-                    className={`w-full p-2 border ${errors.cardNumber ? 'border-red-500' : 'border-gray-300'}`}
-                  />
-                  {errors.cardNumber && (
-                    <p className="text-red-500 text-xs mt-1">{errors.cardNumber}</p>
-                  )}
-                </div>
-                
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name on Card
-                  </label>
-                  <input
-                    type="text"
-                    name="cardName"
-                    value={formData.cardName}
-                    onChange={handleChange}
-                    placeholder="John Doe"
-                    className={`w-full p-2 border ${errors.cardName ? 'border-red-500' : 'border-gray-300'}`}
-                  />
-                  {errors.cardName && (
-                    <p className="text-red-500 text-xs mt-1">{errors.cardName}</p>
-                  )}
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Expiry Date
-                    </label>
-                    <input
-                      type="text"
-                      name="expiry"
-                      value={formData.expiry}
-                      onChange={handleChange}
-                      placeholder="MM/YY"
-                      className={`w-full p-2 border ${errors.expiry ? 'border-red-500' : 'border-gray-300'}`}
-                    />
-                    {errors.expiry && (
-                      <p className="text-red-500 text-xs mt-1">{errors.expiry}</p>
-                    )}
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      CVC
-                    </label>
-                    <input
-                      type="text"
-                      name="cvc"
-                      value={formData.cvc}
-                      onChange={handleChange}
-                      placeholder="123"
-                      className={`w-full p-2 border ${errors.cvc ? 'border-red-500' : 'border-gray-300'}`}
-                    />
-                    {errors.cvc && (
-                      <p className="text-red-500 text-xs mt-1">{errors.cvc}</p>
-                    )}
-                  </div>
-                </div>
-                
-                <h3 className="font-serif text-lg mt-8 mb-4">Billing Address</h3>
-                
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Address
-                  </label>
-                  <input
-                    type="text"
-                    name="billingAddress"
-                    value={formData.billingAddress}
-                    onChange={handleChange}
-                    placeholder="123 Main St"
-                    className={`w-full p-2 border ${errors.billingAddress ? 'border-red-500' : 'border-gray-300'}`}
-                  />
-                  {errors.billingAddress && (
-                    <p className="text-red-500 text-xs mt-1">{errors.billingAddress}</p>
-                  )}
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      City
-                    </label>
-                    <input
-                      type="text"
-                      name="billingCity"
-                      value={formData.billingCity}
-                      onChange={handleChange}
-                      className={`w-full p-2 border ${errors.billingCity ? 'border-red-500' : 'border-gray-300'}`}
-                    />
-                    {errors.billingCity && (
-                      <p className="text-red-500 text-xs mt-1">{errors.billingCity}</p>
-                    )}
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      State
-                    </label>
-                    <input
-                      type="text"
-                      name="billingState"
-                      value={formData.billingState}
-                      onChange={handleChange}
-                      className={`w-full p-2 border ${errors.billingState ? 'border-red-500' : 'border-gray-300'}`}
-                    />
-                    {errors.billingState && (
-                      <p className="text-red-500 text-xs mt-1">{errors.billingState}</p>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Zip Code
-                    </label>
-                    <input
-                      type="text"
-                      name="billingZip"
-                      value={formData.billingZip}
-                      onChange={handleChange}
-                      className={`w-full p-2 border ${errors.billingZip ? 'border-red-500' : 'border-gray-300'}`}
-                    />
-                    {errors.billingZip && (
-                      <p className="text-red-500 text-xs mt-1">{errors.billingZip}</p>
-                    )}
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Country
-                    </label>
-                    <select
-                      name="billingCountry"
-                      value={formData.billingCountry}
-                      onChange={handleChange}
-                      className="w-full p-2 border border-gray-300"
-                    >
-                      <option value="USA">United States</option>
-                      <option value="CAN">Canada</option>
-                      <option value="GBR">United Kingdom</option>
-                      <option value="AUS">Australia</option>
-                    </select>
-                  </div>
-                </div>
+                {!promoApplied && (
+                  <>
+                    <div className="mb-6">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Card Number
+                      </label>
+                      <input
+                        type="text"
+                        name="cardNumber"
+                        value={formData.cardNumber}
+                        onChange={handleChange}
+                        placeholder="1234 5678 9012 3456"
+                        className={`w-full p-2 border ${errors.cardNumber ? 'border-red-500' : 'border-gray-300'}`}
+                      />
+                      {errors.cardNumber && (
+                        <p className="text-red-500 text-xs mt-1">{errors.cardNumber}</p>
+                      )}
+                    </div>
+                    
+                    <div className="mb-6">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Name on Card
+                      </label>
+                      <input
+                        type="text"
+                        name="cardName"
+                        value={formData.cardName}
+                        onChange={handleChange}
+                        placeholder="John Doe"
+                        className={`w-full p-2 border ${errors.cardName ? 'border-red-500' : 'border-gray-300'}`}
+                      />
+                      {errors.cardName && (
+                        <p className="text-red-500 text-xs mt-1">{errors.cardName}</p>
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Expiry Date
+                        </label>
+                        <input
+                          type="text"
+                          name="expiry"
+                          value={formData.expiry}
+                          onChange={handleChange}
+                          placeholder="MM/YY"
+                          className={`w-full p-2 border ${errors.expiry ? 'border-red-500' : 'border-gray-300'}`}
+                        />
+                        {errors.expiry && (
+                          <p className="text-red-500 text-xs mt-1">{errors.expiry}</p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          CVC
+                        </label>
+                        <input
+                          type="text"
+                          name="cvc"
+                          value={formData.cvc}
+                          onChange={handleChange}
+                          placeholder="123"
+                          className={`w-full p-2 border ${errors.cvc ? 'border-red-500' : 'border-gray-300'}`}
+                        />
+                        {errors.cvc && (
+                          <p className="text-red-500 text-xs mt-1">{errors.cvc}</p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <h3 className="font-serif text-lg mt-8 mb-4">Billing Address</h3>
+                    
+                    <div className="mb-6">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Address
+                      </label>
+                      <input
+                        type="text"
+                        name="billingAddress"
+                        value={formData.billingAddress}
+                        onChange={handleChange}
+                        placeholder="123 Main St"
+                        className={`w-full p-2 border ${errors.billingAddress ? 'border-red-500' : 'border-gray-300'}`}
+                      />
+                      {errors.billingAddress && (
+                        <p className="text-red-500 text-xs mt-1">{errors.billingAddress}</p>
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          City
+                        </label>
+                        <input
+                          type="text"
+                          name="billingCity"
+                          value={formData.billingCity}
+                          onChange={handleChange}
+                          className={`w-full p-2 border ${errors.billingCity ? 'border-red-500' : 'border-gray-300'}`}
+                        />
+                        {errors.billingCity && (
+                          <p className="text-red-500 text-xs mt-1">{errors.billingCity}</p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          State
+                        </label>
+                        <input
+                          type="text"
+                          name="billingState"
+                          value={formData.billingState}
+                          onChange={handleChange}
+                          className={`w-full p-2 border ${errors.billingState ? 'border-red-500' : 'border-gray-300'}`}
+                        />
+                        {errors.billingState && (
+                          <p className="text-red-500 text-xs mt-1">{errors.billingState}</p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Zip Code
+                        </label>
+                        <input
+                          type="text"
+                          name="billingZip"
+                          value={formData.billingZip}
+                          onChange={handleChange}
+                          className={`w-full p-2 border ${errors.billingZip ? 'border-red-500' : 'border-gray-300'}`}
+                        />
+                        {errors.billingZip && (
+                          <p className="text-red-500 text-xs mt-1">{errors.billingZip}</p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Country
+                        </label>
+                        <select
+                          name="billingCountry"
+                          value={formData.billingCountry}
+                          onChange={handleChange}
+                          className="w-full p-2 border border-gray-300"
+                        >
+                          <option value="USA">United States</option>
+                          <option value="CAN">Canada</option>
+                          <option value="GBR">United Kingdom</option>
+                          <option value="AUS">Australia</option>
+                        </select>
+                      </div>
+                    </div>
+                  </>
+                )}
                 
                 <div className="mb-6">
                   <label className="flex items-center">
@@ -358,7 +443,7 @@ const Payment = () => {
                   disabled={isLoading}
                   className="w-full bg-[#C0A371] hover:bg-[#b0946a] text-white py-3 px-4 uppercase tracking-widest transition-colors"
                 >
-                  {isLoading ? 'Processing...' : 'Complete Purchase'}
+                  {isLoading ? 'Processing...' : promoApplied ? 'Continue to Setup' : 'Complete Purchase'}
                 </button>
               </form>
             </div>
@@ -375,18 +460,25 @@ const Payment = () => {
               <div className="space-y-2 mb-6">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subscription</span>
-                  <span className="font-medium">${selectedPlan.price}/month</span>
+                  <span className="font-medium">${promoApplied ? '0.00' : `${selectedPlan.price}`}/month</span>
                 </div>
                 
                 <div className="flex justify-between">
                   <span className="text-gray-600">Tax</span>
-                  <span className="font-medium">${(selectedPlan.price * 0.07).toFixed(2)}</span>
+                  <span className="font-medium">${promoApplied ? '0.00' : (selectedPlan.price * 0.07).toFixed(2)}</span>
                 </div>
+                
+                {promoApplied && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Promo (FREEFREE)</span>
+                    <span>-${(selectedPlan.price * 1.07).toFixed(2)}</span>
+                  </div>
+                )}
               </div>
               
               <div className="border-t border-gray-200 pt-4 flex justify-between items-center">
                 <span className="text-lg font-medium">Total</span>
-                <span className="text-2xl font-bold">${(selectedPlan.price * 1.07).toFixed(2)}</span>
+                <span className="text-2xl font-bold">${promoApplied ? '0.00' : (selectedPlan.price * 1.07).toFixed(2)}</span>
               </div>
               
               <div className="mt-8 text-sm text-gray-500">
@@ -400,4 +492,4 @@ const Payment = () => {
   );
 };
 
-export default Payment; 
+export default Payment;

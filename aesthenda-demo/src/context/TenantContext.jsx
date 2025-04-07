@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useAuth } from './AuthContext';
-import { getTenantData, getStylistAppointments } from '../api/mockData';
+import api from '../api';
+import { ENABLE_MOCK_API } from '../config';
 
 // Create the tenant context
 const TenantContext = createContext();
@@ -31,30 +32,58 @@ export const TenantProvider = ({ children }) => {
         setLoading(true);
         setError(null);
         
-        // For demo purposes, we get tenant data from our mock data
-        const data = getTenantData(currentUser.tenantId);
-        
-        if (data) {
-          setTenantData(data);
+        if (ENABLE_MOCK_API) {
+          // For demo purposes, we get tenant data from our mock data
+          const data = api.mock.getTenantData(currentUser.tenantId);
           
-          // If the user is a stylist, fetch their appointments
-          if (currentUser.role === 'stylist' && currentUser.stylist_id) {
-            const stylistAppointments = getStylistAppointments(
-              currentUser.tenantId, 
-              currentUser.stylist_id
-            );
-            setAppointments(stylistAppointments);
-          }
-          // If the user is a salon admin, they would see all appointments
-          else if (currentUser.role === 'salon_admin') {
-            // In a real app, this would be a different API call to get all tenant appointments
-            // For demo, we'll use the same function but with no stylist_id filter
-            const allAppointments = getStylistAppointments(currentUser.tenantId);
-            setAppointments(allAppointments);
+          if (data) {
+            setTenantData(data);
+            
+            // If the user is a stylist, fetch their appointments
+            if (currentUser.role === 'stylist' && currentUser.stylist_id) {
+              const stylistAppointments = api.mock.getStylistAppointments(
+                currentUser.tenantId, 
+                currentUser.stylist_id
+              );
+              setAppointments(stylistAppointments);
+            }
+            // If the user is a salon admin, they would see all appointments
+            else if (currentUser.role === 'salon_admin') {
+              const allAppointments = api.mock.getStylistAppointments(currentUser.tenantId);
+              setAppointments(allAppointments);
+            }
+          } else {
+            setError('Tenant data not found');
           }
         } else {
-          console.error('No tenant data found for ID:', currentUser.tenantId);
-          setError('Tenant data not found');
+          // Use real API services
+          const salonResult = await api.tenant.getSalonByTenantId(currentUser.tenantId);
+          
+          if (salonResult.success) {
+            setTenantData(salonResult.data);
+            
+            // Fetch appointments based on user role
+            if (currentUser.role === 'stylist' && currentUser.stylist_id) {
+              // Stylist only sees their own appointments
+              const appointmentsResult = await api.tenant.getAppointments(
+                currentUser.tenantId, 
+                currentUser.stylist_id
+              );
+              
+              if (appointmentsResult.success) {
+                setAppointments(appointmentsResult.data);
+              }
+            } else if (currentUser.role === 'salon_admin') {
+              // Admin sees all salon appointments
+              const appointmentsResult = await api.tenant.getAppointments(currentUser.tenantId);
+              
+              if (appointmentsResult.success) {
+                setAppointments(appointmentsResult.data);
+              }
+            }
+          } else {
+            setError(salonResult.error || 'Failed to load tenant data');
+          }
         }
       } catch (err) {
         console.error('Error fetching tenant data:', err);
@@ -91,8 +120,6 @@ export const TenantProvider = ({ children }) => {
       document.documentElement.style.setProperty('--tenant-bg', backgroundColor || '#F9FAFB');
       document.documentElement.style.setProperty('--tenant-text', textColor || '#1F2937');
       document.documentElement.style.setProperty('--tenant-font-family', fontFamily || 'Inter, sans-serif');
-      
-      // You could also dynamically load fonts here if needed
     }
   }, [tenantData]);
 
@@ -111,8 +138,46 @@ export const TenantProvider = ({ children }) => {
   };
 
   // Provide appointments specific to the tenant
-  const getStylistAppointments = () => {
+  const getStylistAppointmentsFunc = () => {
     return appointments;
+  };
+
+  // Update salon branding
+  const updateBranding = async (brandingData) => {
+    if (!currentUser?.tenantId) return { success: false, error: 'No tenant ID available' };
+    
+    try {
+      if (ENABLE_MOCK_API) {
+        // In mock mode, just update the local state
+        setTenantData(prev => ({
+          ...prev,
+          branding: {
+            ...prev.branding,
+            ...brandingData
+          }
+        }));
+        return { success: true };
+      }
+      
+      // Use real API service
+      const result = await api.tenant.updateBranding(currentUser.tenantId, brandingData);
+      
+      if (result.success) {
+        // Update local state with the returned data
+        setTenantData(prev => ({
+          ...prev,
+          branding: result.data.branding
+        }));
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Error updating branding:', error);
+      return { 
+        success: false, 
+        error: error.message || 'Failed to update branding' 
+      };
+    }
   };
 
   const value = {
@@ -125,7 +190,8 @@ export const TenantProvider = ({ children }) => {
     getSecondaryColor,
     getFontFamily,
     getTenantResource,
-    getStylistAppointments
+    getStylistAppointments: getStylistAppointmentsFunc,
+    updateBranding
   };
 
   return <TenantContext.Provider value={value}>{children}</TenantContext.Provider>;

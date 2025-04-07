@@ -1,0 +1,629 @@
+type BusinessHoursBreak {
+  startTime: String!
+  endTime: String!
+  reason: String
+}
+
+type BusinessHours {
+  dayOfWeek: Int!
+  startTime: String!
+  endTime: String!
+  isOpen: Boolean!
+  breaks: [BusinessHoursBreak!]
+}
+
+type Holiday {
+  date: DateTime!
+  name: String!
+  isRecurring: Boolean!
+  description: String
+}
+
+type SpecialEvent {
+  name: String!
+  startDate: DateTime!
+  endDate: DateTime!
+  description: String
+  affectsAvailability: Boolean!
+  modifiedHours: ModifiedHours
+}
+
+type ModifiedHours {
+  startTime: String!
+  endTime: String!
+}
+
+type AppointmentSettings {
+  minAdvanceTime: Int!
+  maxAdvanceTime: Int!
+  defaultDuration: Int!
+  bufferTime: Int!
+  allowMultipleServices: Boolean!
+  maxServicesPerBooking: Int!
+  cancellationPolicy: CancellationPolicy!
+}
+
+type CancellationPolicy {
+  minHoursNotice: Int!
+  cancellationFee: Float!
+  allowRescheduling: Boolean!
+  rescheduleLimit: Int!
+}
+
+type StaffSettings {
+  showStaffPhotos: Boolean!
+  allowStaffSelection: Boolean!
+  rotateAssignments: Boolean!
+  defaultBreakDuration: Int!
+  minimumBreaksBetweenAppointments: Int!
+  maxDailyAppointments: Int
+}
+
+type NotificationTemplate {
+  email: String
+  sms: String
+}
+
+type NotificationSettings {
+  enableEmail: Boolean!
+  enableSMS: Boolean!
+  enablePush: Boolean!
+  reminderTimes: [Int!]!
+  customMessages: NotificationCustomMessages!
+  staffNotifications: StaffNotificationSettings!
+}
+
+type NotificationCustomMessages {
+  confirmation: NotificationTemplate!
+  reminder: NotificationTemplate!
+  cancellation: NotificationTemplate!
+  followUp: FollowUpNotification!
+}
+
+type FollowUpNotification {
+  email: String
+  sms: String
+  delayHours: Int!
+}
+
+type StaffNotificationSettings {
+  newBooking: Boolean!
+  cancellation: Boolean!
+  modification: Boolean!
+  dailySchedule: Boolean!
+  sendTime: String!
+}
+
+type Logo {
+  url: String!
+  altText: String
+  width: Int
+  height: Int
+}
+
+type Colors {
+  primary: String!
+  secondary: String!
+  accent: String!
+  background: String!
+  text: String!
+  links: String!
+}
+
+type Typography {
+  primaryFont: String!
+  secondaryFont: String!
+  fontSize: FontSizes!
+}
+
+type FontSizes {
+  base: String!
+  headings: HeadingSizes!
+}
+
+type HeadingSizes {
+  h1: String!
+  h2: String!
+  h3: String!
+}
+
+type Layout {
+  showTestimonials: Boolean!
+  showPromotions: Boolean!
+  showSocialLinks: Boolean!
+  customSections: [CustomSection!]!
+}
+
+type CustomSection {
+  name: String!
+  content: String!
+  position: String!
+  isEnabled: Boolean!
+}
+
+type SocialLinks {
+  facebook: String
+  instagram: String
+  twitter: String
+  linkedin: String
+  yelp: String
+}
+
+type ServiceCategory {
+  name: String!
+  description: String
+  order: Int!
+  isEnabled: Boolean!
+}
+
+type PricingTier {
+  name: String!
+  description: String
+  multiplier: Float!
+}
+
+type SpecialOffer {
+  name: String!
+  description: String
+  discountType: DiscountType!
+  discountValue: Float!
+  startDate: DateTime!
+  endDate: DateTime!
+  applicableServices: [ID!]!
+  minimumBookingValue: Float
+  maxUses: Int
+  currentUses: Int!
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+type ContactForm {
+  isEnabled: Boolean!
+  fields: [ContactFormField!]!
+}
+
+type ContactFormField {
+  name: String!
+  type: String!
+  isRequired: Boolean!
+  order: Int!
+}
+
+type CustomScript {
+  name: String!
+  content: String!
+  loadLocation: ScriptLoadLocation!
+}
+
+enum ScriptLoadLocation {
+  HEAD
+  BODY_START
+  BODY_END
+}
+
+input BusinessHoursInput {
+  dayOfWeek: Int!
+  startTime: String!
+  endTime: String!
+  isOpen: Boolean!
+  breaks: [BusinessHoursBreakInput!]
+}
+
+input BusinessHoursBreakInput {
+  startTime: String!
+  endTime: String!
+  reason: String
+}
+
+input HolidayInput {
+  date: DateTime!
+  name: String!
+  isRecurring: Boolean!
+  description: String
+}
+
+input SpecialEventInput {
+  name: String!
+  startDate: DateTime!
+  endDate: DateTime!
+  description: String
+  affectsAvailability: Boolean!
+  modifiedHours: ModifiedHoursInput
+}
+
+input ModifiedHoursInput {
+  startTime: String!
+  endTime: String!
+}
+
+input AppointmentSettingsInput {
+  minAdvanceTime: Int
+  maxAdvanceTime: Int
+  defaultDuration: Int
+  bufferTime: Int
+  allowMultipleServices: Boolean
+  maxServicesPerBooking: Int
+  cancellationPolicy: CancellationPolicyInput
+}
+
+input CancellationPolicyInput {
+  minHoursNotice: Int
+  cancellationFee: Float
+  allowRescheduling: Boolean
+  rescheduleLimit: Int
+}
+
+input StaffSettingsInput {
+  showStaffPhotos: Boolean
+  allowStaffSelection: Boolean
+  rotateAssignments: Boolean
+  defaultBreakDuration: Int
+  minimumBreaksBetweenAppointments: Int
+  maxDailyAppointments: Int
+}
+
+input NotificationSettingsInput {
+  enableEmail: Boolean
+  enableSMS: Boolean
+  enablePush: Boolean
+  reminderTimes: [Int!]
+  customMessages: NotificationCustomMessagesInput
+  staffNotifications: StaffNotificationSettingsInput
+}
+
+input NotificationTemplateInput {
+  email: String
+  sms: String
+}
+
+input NotificationCustomMessagesInput {
+  confirmation: NotificationTemplateInput
+  reminder: NotificationTemplateInput
+  cancellation: NotificationTemplateInput
+  followUp: FollowUpNotificationInput
+}
+
+input FollowUpNotificationInput {
+  email: String
+  sms: String
+  delayHours: Int
+}
+
+input StaffNotificationSettingsInput {
+  newBooking: Boolean
+  cancellation: Boolean
+  modification: Boolean
+  dailySchedule: Boolean
+  sendTime: String
+}
+
+input LogoInput {
+  url: String!
+  altText: String
+  width: Int
+  height: Int
+}
+
+input ColorsInput {
+  primary: String
+  secondary: String
+  accent: String
+  background: String
+  text: String
+  links: String
+}
+
+input TypographyInput {
+  primaryFont: String
+  secondaryFont: String
+  fontSize: FontSizesInput
+}
+
+input FontSizesInput {
+  base: String
+  headings: HeadingSizesInput
+}
+
+input HeadingSizesInput {
+  h1: String
+  h2: String
+  h3: String
+}
+
+input LayoutInput {
+  showTestimonials: Boolean
+  showPromotions: Boolean
+  showSocialLinks: Boolean
+  customSections: [CustomSectionInput!]
+}
+
+input CustomSectionInput {
+  name: String!
+  content: String!
+  position: String!
+  isEnabled: Boolean!
+}
+
+input SocialLinksInput {
+  facebook: String
+  instagram: String
+  twitter: String
+  linkedin: String
+  yelp: String
+}
+
+input ServiceCategoryInput {
+  name: String!
+  description: String
+  order: Int!
+  isEnabled: Boolean!
+}
+
+input PricingTierInput {
+  name: String!
+  description: String
+  multiplier: Float!
+}
+
+input SpecialOfferInput {
+  name: String!
+  description: String
+  discountType: DiscountType!
+  discountValue: Float!
+  startDate: DateTime!
+  endDate: DateTime!
+  applicableServices: [ID!]!
+  minimumBookingValue: Float
+  maxUses: Int
+}
+
+enum SubscriptionPlan {
+  BASIC
+  PROFESSIONAL
+  ENTERPRISE
+  CUSTOM
+}
+
+enum BillingCycle {
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+}
+
+enum PaymentGateway {
+  STRIPE
+  SQUARE
+  PAYPAL
+}
+
+enum IntegrationType {
+  CALENDAR
+  INVENTORY
+  MARKETING
+  CRM
+  ACCOUNTING
+}
+
+enum CalendarProvider {
+  GOOGLE
+  APPLE
+  MICROSOFT
+}
+
+type SubscriptionSettings {
+  plan: SubscriptionPlan!
+  billingCycle: BillingCycle!
+  startDate: DateTime!
+  nextBillingDate: DateTime!
+  status: String!
+  features: [String!]!
+  customFeatures: [String!]
+  price: Float!
+  currency: String!
+  trialEndsAt: DateTime
+}
+
+type BillingSettings {
+  companyName: String!
+  taxId: String
+  billingEmail: String!
+  billingAddress: Address!
+  paymentMethods: [PaymentMethod!]!
+  defaultPaymentMethod: ID
+  autoRenew: Boolean!
+}
+
+type PaymentMethod {
+  id: ID!
+  type: String!
+  lastFour: String
+  expiryDate: String
+  isDefault: Boolean!
+}
+
+type PaymentGatewaySettings {
+  gateway: PaymentGateway!
+  isEnabled: Boolean!
+  credentials: PaymentGatewayCredentials!
+  webhookUrl: String
+  publicKey: String!
+}
+
+type PaymentGatewayCredentials {
+  apiKey: String
+  merchantId: String
+  environment: String!
+}
+
+type WorkflowStep {
+  id: ID!
+  name: String!
+  type: String!
+  config: JSON!
+  order: Int!
+  isEnabled: Boolean!
+  conditions: [WorkflowCondition!]!
+  actions: [WorkflowAction!]!
+}
+
+type WorkflowCondition {
+  field: String!
+  operator: String!
+  value: JSON!
+}
+
+type WorkflowAction {
+  type: String!
+  config: JSON!
+}
+
+type CustomWorkflow {
+  id: ID!
+  name: String!
+  description: String
+  trigger: String!
+  isEnabled: Boolean!
+  steps: [WorkflowStep!]!
+}
+
+type IntegrationSettings {
+  type: IntegrationType!
+  provider: String!
+  isEnabled: Boolean!
+  credentials: JSON
+  syncSettings: JSON
+  lastSyncAt: DateTime
+  webhookUrl: String
+}
+
+type CalendarIntegration {
+  provider: CalendarProvider!
+  isEnabled: Boolean!
+  credentials: JSON
+  selectedCalendars: [String!]
+  syncDirection: String!
+  lastSyncAt: DateTime
+}
+
+input SubscriptionSettingsInput {
+  plan: SubscriptionPlan!
+  billingCycle: BillingCycle!
+  customFeatures: [String!]
+}
+
+input BillingSettingsInput {
+  companyName: String!
+  taxId: String
+  billingEmail: String!
+  billingAddress: AddressInput!
+  autoRenew: Boolean
+}
+
+input PaymentGatewaySettingsInput {
+  gateway: PaymentGateway!
+  isEnabled: Boolean!
+  credentials: PaymentGatewayCredentialsInput!
+  webhookUrl: String
+}
+
+input PaymentGatewayCredentialsInput {
+  apiKey: String
+  merchantId: String
+  environment: String!
+}
+
+input WorkflowStepInput {
+  name: String!
+  type: String!
+  config: JSON!
+  order: Int!
+  isEnabled: Boolean!
+  conditions: [WorkflowConditionInput!]!
+  actions: [WorkflowActionInput!]!
+}
+
+input WorkflowConditionInput {
+  field: String!
+  operator: String!
+  value: JSON!
+}
+
+input WorkflowActionInput {
+  type: String!
+  config: JSON!
+}
+
+input CustomWorkflowInput {
+  name: String!
+  description: String
+  trigger: String!
+  isEnabled: Boolean!
+  steps: [WorkflowStepInput!]!
+}
+
+input IntegrationSettingsInput {
+  type: IntegrationType!
+  provider: String!
+  isEnabled: Boolean!
+  credentials: JSON
+  syncSettings: JSON
+  webhookUrl: String
+}
+
+input CalendarIntegrationInput {
+  provider: CalendarProvider!
+  isEnabled: Boolean!
+  credentials: JSON
+  selectedCalendars: [String!]
+  syncDirection: String!
+}
+
+type Query {
+  tenant(id: ID!): Tenant!
+  tenantBySlug(slug: String!): Tenant!
+  validateAppointmentTime(tenantId: ID!, date: DateTime!, duration: Int!): Boolean!
+  getActiveSpecialOffers(tenantId: ID!): [SpecialOffer!]!
+  getBusinessHours(tenantId: ID!, dayOfWeek: Int!): BusinessHours
+  getSubscriptionPlans: [SubscriptionPlan!]!
+  getCurrentSubscription(tenantId: ID!): SubscriptionSettings!
+  getBillingHistory(tenantId: ID!, startDate: DateTime, endDate: DateTime): [Invoice!]!
+  getPaymentGateways(tenantId: ID!): [PaymentGatewaySettings!]!
+  getCustomWorkflows(tenantId: ID!): [CustomWorkflow!]!
+  getIntegrations(tenantId: ID!): [IntegrationSettings!]!
+}
+
+type Mutation {
+  updateBusinessHours(tenantId: ID!, businessHours: [BusinessHoursInput!]!): Tenant!
+  updateHolidays(tenantId: ID!, holidays: [HolidayInput!]!): Tenant!
+  addSpecialEvent(tenantId: ID!, event: SpecialEventInput!): Tenant!
+  removeSpecialEvent(tenantId: ID!, eventId: ID!): Tenant!
+  updateAppointmentSettings(tenantId: ID!, settings: AppointmentSettingsInput!): Tenant!
+  updateStaffSettings(tenantId: ID!, settings: StaffSettingsInput!): Tenant!
+  updateNotificationSettings(tenantId: ID!, settings: NotificationSettingsInput!): Tenant!
+  updateBranding(tenantId: ID!, logo: LogoInput, colors: ColorsInput, typography: TypographyInput, layout: LayoutInput, socialLinks: SocialLinksInput): Tenant!
+  updateCustomCss(tenantId: ID!, css: String!): Tenant!
+  addServiceCategory(tenantId: ID!, category: ServiceCategoryInput!): Tenant!
+  updateServiceCategory(tenantId: ID!, categoryId: ID!, category: ServiceCategoryInput!): Tenant!
+  removeServiceCategory(tenantId: ID!, categoryId: ID!): Tenant!
+  addPricingTier(tenantId: ID!, tier: PricingTierInput!): Tenant!
+  updatePricingTier(tenantId: ID!, tierId: ID!, tier: PricingTierInput!): Tenant!
+  removePricingTier(tenantId: ID!, tierId: ID!): Tenant!
+  addSpecialOffer(tenantId: ID!, offer: SpecialOfferInput!): Tenant!
+  updateSpecialOffer(tenantId: ID!, offerId: ID!, offer: SpecialOfferInput!): Tenant!
+  removeSpecialOffer(tenantId: ID!, offerId: ID!): Tenant!
+  updateSubscription(tenantId: ID!, settings: SubscriptionSettingsInput!): SubscriptionSettings!
+  updateBillingSettings(tenantId: ID!, settings: BillingSettingsInput!): BillingSettings!
+  addPaymentMethod(tenantId: ID!, paymentMethodToken: String!): PaymentMethod!
+  removePaymentMethod(tenantId: ID!, paymentMethodId: ID!): Boolean!
+  setDefaultPaymentMethod(tenantId: ID!, paymentMethodId: ID!): BillingSettings!
+  configurePaymentGateway(tenantId: ID!, settings: PaymentGatewaySettingsInput!): PaymentGatewaySettings!
+  createCustomWorkflow(tenantId: ID!, workflow: CustomWorkflowInput!): CustomWorkflow!
+  updateCustomWorkflow(tenantId: ID!, workflowId: ID!, workflow: CustomWorkflowInput!): CustomWorkflow!
+  deleteCustomWorkflow(tenantId: ID!, workflowId: ID!): Boolean!
+  configureIntegration(tenantId: ID!, settings: IntegrationSettingsInput!): IntegrationSettings!
+  configureCalendarIntegration(tenantId: ID!, settings: CalendarIntegrationInput!): CalendarIntegration!
+  syncIntegration(tenantId: ID!, integrationType: IntegrationType!): Boolean!
+}

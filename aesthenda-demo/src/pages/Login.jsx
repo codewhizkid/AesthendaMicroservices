@@ -3,10 +3,10 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Login = ({ onClose }) => {
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [dob, setDob] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login, error } = useAuth();
   const navigate = useNavigate();
@@ -20,7 +20,7 @@ const Login = ({ onClose }) => {
     setIsLoading(true);
     
     try {
-      const success = await login(email, password);
+      const success = await login(email, password, firstName, lastName);
       
       if (success) {
         navigate(from, { replace: true });
@@ -35,18 +35,6 @@ const Login = ({ onClose }) => {
   const handleSocialLogin = (provider) => {
     // Direct to backend OAuth endpoints
     window.location.href = `/api/auth/${provider}`;
-  };
-
-  // Generate date of birth options
-  const generateYearOptions = () => {
-    const currentYear = new Date().getFullYear();
-    const years = [];
-    for (let year = currentYear - 100; year <= currentYear - 13; year++) {
-      years.push(year);
-    }
-    return years.map(year => (
-      <option key={year} value={year}>{year}</option>
-    ));
   };
 
   return (
@@ -77,15 +65,28 @@ const Login = ({ onClose }) => {
         <h3 className="text-xl font-bold text-center mb-8">Log in</h3>
         
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="name" className="block text-xs uppercase font-medium text-gray-700 mb-1">Name</label>
-            <input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full border border-gray-300 px-3 py-2 text-sm"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="firstName" className="block text-xs uppercase font-medium text-gray-700 mb-1">First Name</label>
+              <input
+                id="firstName"
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                className="w-full border border-gray-300 px-3 py-2 text-sm"
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="lastName" className="block text-xs uppercase font-medium text-gray-700 mb-1">Last Name</label>
+              <input
+                id="lastName"
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className="w-full border border-gray-300 px-3 py-2 text-sm"
+              />
+            </div>
           </div>
           
           <div>
@@ -112,19 +113,6 @@ const Login = ({ onClose }) => {
               required
               className="w-full border border-gray-300 px-3 py-2 text-sm"
             />
-          </div>
-          
-          <div>
-            <label htmlFor="dob" className="block text-xs uppercase font-medium text-gray-700 mb-1">Date of birth</label>
-            <select
-              id="dob"
-              value={dob}
-              onChange={(e) => setDob(e.target.value)}
-              className="w-full border border-gray-300 px-3 py-2 text-sm appearance-none"
-            >
-              <option value="">Select</option>
-              {generateYearOptions()}
-            </select>
           </div>
           
           {error && (

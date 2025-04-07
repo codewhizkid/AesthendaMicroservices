@@ -1,0 +1,163 @@
+scalar JSON
+scalar DateTime
+
+type RevenueMetrics {
+  total: Float!
+  byService: [ServiceRevenue!]!
+  byStaff: [StaffRevenue!]!
+  trends: [RevenueTrend!]!
+}
+
+type ServiceRevenue {
+  serviceId: ID!
+  serviceName: String!
+  revenue: Float!
+  appointments: Int!
+  averageRevenue: Float!
+}
+
+type StaffRevenue {
+  staffId: ID!
+  staffName: String!
+  revenue: Float!
+  appointments: Int!
+  averageRevenue: Float!
+}
+
+type RevenueTrend {
+  date: DateTime!
+  revenue: Float!
+  appointments: Int!
+}
+
+type BookingMetrics {
+  total: Int!
+  completed: Int!
+  cancelled: Int!
+  noShows: Int!
+  waitlistConversions: Int!
+  conversionRate: Float!
+}
+
+type CustomerMetrics {
+  totalCustomers: Int!
+  newCustomers: Int!
+  repeatCustomers: Int!
+  averageVisitsPerCustomer: Float!
+  retentionRate: Float!
+  customerLifetimeValue: Float!
+}
+
+type StaffPerformance {
+  staffId: ID!
+  staffName: String!
+  appointmentsCompleted: Int!
+  completionRate: Float!
+  averageServiceTime: Int!
+  customerSatisfaction: Float!
+  revenue: Float!
+}
+
+type UtilizationMetrics {
+  overallUtilization: Float!
+  peakHours: [PeakHourMetric!]!
+  resourceUtilization: [ResourceUtilization!]!
+}
+
+type PeakHourMetric {
+  hour: Int!
+  appointments: Int!
+  utilization: Float!
+}
+
+type ResourceUtilization {
+  resourceId: ID!
+  resourceName: String!
+  utilization: Float!
+  totalHours: Int!
+  bookedHours: Int!
+}
+
+input DateRangeInput {
+  startDate: DateTime!
+  endDate: DateTime!
+}
+
+input AnalyticsFilterInput {
+  dateRange: DateRangeInput!
+  serviceIds: [ID!]
+  staffIds: [ID!]
+  customerId: ID
+  resourceIds: [ID!]
+}
+
+type CustomReport {
+  id: ID!
+  name: String!
+  description: String
+  filters: JSON!
+  columns: [String!]!
+  sortBy: String
+  sortDirection: String
+}
+
+type DashboardMetric {
+  id: ID!
+  name: String!
+  type: MetricType!
+  value: JSON!
+  trend: Float
+  previousValue: JSON
+}
+
+enum MetricType {
+  REVENUE
+  BOOKINGS
+  CUSTOMERS
+  UTILIZATION
+  CUSTOM
+}
+
+enum ReportFormat {
+  CSV
+  EXCEL
+  PDF
+}
+
+type Query {
+  # Revenue Analytics
+  getRevenueMetrics(filter: AnalyticsFilterInput!): RevenueMetrics!
+  
+  # Booking Analytics
+  getBookingMetrics(filter: AnalyticsFilterInput!): BookingMetrics!
+  
+  # Customer Analytics
+  getCustomerMetrics(filter: AnalyticsFilterInput!): CustomerMetrics!
+  
+  # Staff Analytics
+  getStaffPerformance(filter: AnalyticsFilterInput!): [StaffPerformance!]!
+  
+  # Utilization Analytics
+  getUtilizationMetrics(filter: AnalyticsFilterInput!): UtilizationMetrics!
+  
+  # Custom Reports
+  getCustomReports: [CustomReport!]!
+  getCustomReport(reportId: ID!): CustomReport!
+  generateCustomReport(reportId: ID!, filter: AnalyticsFilterInput!, format: ReportFormat!): String!
+  
+  # Real-time Dashboard
+  getDashboardMetrics: [DashboardMetric!]!
+}
+
+type Mutation {
+  # Custom Reports
+  createCustomReport(name: String!, description: String, filters: JSON!, columns: [String!]!): CustomReport!
+  updateCustomReport(reportId: ID!, name: String, description: String, filters: JSON, columns: [String!]): CustomReport!
+  deleteCustomReport(reportId: ID!): Boolean!
+  
+  # Dashboard Configuration
+  configureDashboard(metrics: [ID!]!): Boolean!
+  
+  # Export Data
+  exportAnalytics(filter: AnalyticsFilterInput!, format: ReportFormat!): String!
+}

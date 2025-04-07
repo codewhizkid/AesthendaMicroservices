@@ -1,0 +1,11 @@
+---
+description:  Reusable Code and Middleware 	•	Shared Middleware: Implement middleware for authentication, authorization, and tenant checks that can be reused across all services. This ensures that every request is processed consistently. 	•	Common Utility Functions: Create shared libraries for common operations (e.g., token management, logging, data formatting). This reduces code duplication and helps maintain consistency.
+globs: 
+alwaysApply: false
+---
+
+# Your rule content
+
+- You can @ files here
+- You can use markdown but dont have to
+

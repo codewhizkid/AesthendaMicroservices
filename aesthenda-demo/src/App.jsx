@@ -15,6 +15,7 @@ import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
 import StaffManagement from './pages/StaffManagement';
 import SalonSettings from './pages/SalonSettings';
+import AppointmentManagement from './pages/AppointmentManagement';
 
 // Route guards
 import PrivateRoute from './components/PrivateRoute';
@@ -81,6 +82,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <Dashboard />
+                </PrivateRoute>
+              } 
+            />
+            <Route 
+              path="/dashboard/appointments" 
+              element={
+                <PrivateRoute>
+                  <AppointmentManagement />
                 </PrivateRoute>
               } 
             />
