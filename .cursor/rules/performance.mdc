@@ -1,0 +1,17 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Caching & Optimizations:
+	•	Implement caching strategies (e.g., using Redis) to improve data-fetching performance for frequently accessed endpoints.
+	•	Optimize your GraphQL queries to fetch only the necessary data.
+	•	Load Balancing:
+	•	Distribute workloads across multiple instances of microservices.
+	•	Use API gateways and reverse proxies (like NGINX) to balance load.
+	•	Database Scalability:
+	•	Consider sharding or replica sets for your MongoDB deployment as the data volume grows.t
+
+- You can @ files here
+- You can use markdown but dont have to

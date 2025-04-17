@@ -1,0 +1,22 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Security
+	•	Authentication & Authorization:
+	•	Use robust token-based authentication (JWT) with built-in support for token refresh and social logins (OAuth with Google, Facebook).
+	•	Enforce strict role-based authorization at the API and service layer.
+	•	Data Protection:
+	•	Encrypt sensitive data at rest and in transit.
+	•	Use HTTPS for all communications.
+	•	Connection & Dependency Management:
+	•	Use a centralized configuration system for environment variables and secrets.
+	•	Enforce strict dependency versioning and avoid duplicate or multiple active connections (as with Mongoose).
+	•	Audit Logging & Monitoring:
+	•	Implement audit logs to track key actions (changes to tenant settings, role assignments, etc.).
+	•	Regularly monitor logs and set up alerting on anomalies.
+
+- You can @ files here
+- You can use markdown but dont have to

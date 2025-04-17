@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aesthetenda Calendar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        .calendar-container {
+            height: calc(100vh - 120px);
+        }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen bg-gray-50">
+        <header class="bg-white shadow">
+            <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                <h1 class="text-3xl font-bold text-gray-900">
+                    Aesthetenda Calendar
+                </h1>
+            </div>
+        </header>
+        <main>
+            <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+                <div class="px-4 py-6 sm:px-0">
+                    <div class="calendar-container">
+                        <!-- Calendar will be rendered here by JS -->
+                        <div id="root"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Load React, React DOM, and our application -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Using a simple script to access the GraphQL API -->
+    <script>
+        window.onload = function() {
+            // Simple function to fetch events from our GraphQL API
+            async function fetchEvents() {
+                try {
+                    const response = await fetch('http://localhost:5005/graphql', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            query: `
+                                query {
+                                    events(
+                                        filter: {
+                                            startDate: "2024-04-01T00:00:00Z"
+                                            endDate: "2024-04-30T23:59:59Z"
+                                        }
+                                        pagination: { page: 1, limit: 10 }
+                                    ) {
+                                        edges {
+                                            id
+                                            title
+                                            startTime
+                                            endTime
+                                            status
+                                        }
+                                        pageInfo {
+                                            currentPage
+                                            totalPages
+                                            totalItems
+                                        }
+                                    }
+                                }
+                            `
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    // Create events HTML
+                    const eventsContainer = document.getElementById('root');
+                    eventsContainer.innerHTML = '<h2 class="text-xl font-semibold mb-4">Events</h2>';
+                    
+                    if (data.data && data.data.events && data.data.events.edges.length > 0) {
+                        const events = data.data.events.edges;
+                        const eventsList = document.createElement('ul');
+                        eventsList.className = 'space-y-2';
+                        
+                        events.forEach(event => {
+                            const eventItem = document.createElement('li');
+                            eventItem.className = 'p-3 bg-white rounded shadow';
+                            
+                            // Format dates
+                            const startDate = new Date(event.startTime);
+                            const endDate = new Date(event.endTime);
+                            const formattedStart = startDate.toLocaleString();
+                            const formattedEnd = endDate.toLocaleString();
+                            
+                            // Add status colors
+                            let statusClass = '';
+                            if (event.status === 'CONFIRMED') {
+                                statusClass = 'bg-green-100 text-green-800';
+                            } else if (event.status === 'TENTATIVE') {
+                                statusClass = 'bg-yellow-100 text-yellow-800';
+                            } else {
+                                statusClass = 'bg-red-100 text-red-800';
+                            }
+                            
+                            eventItem.innerHTML = `
+                                <div class="font-medium">${event.title}</div>
+                                <div class="text-sm text-gray-500">${formattedStart} - ${formattedEnd}</div>
+                                <span class="inline-block px-2 py-1 text-xs rounded-full ${statusClass} mt-1">${event.status}</span>
+                            `;
+                            
+                            eventsList.appendChild(eventItem);
+                        });
+                        
+                        eventsContainer.appendChild(eventsList);
+                    } else {
+                        eventsContainer.innerHTML += '<p>No events found. Create some events using the GraphQL API.</p>';
+                    }
+                } catch (error) {
+                    console.error('Error fetching events:', error);
+                    const eventsContainer = document.getElementById('root');
+                    eventsContainer.innerHTML = `
+                        <div class="bg-red-50 border-l-4 border-red-500 p-4">
+                            <p class="text-red-700">Error loading events. Make sure the calendar service is running on port 5005.</p>
+                            <pre class="mt-2 text-sm">${error.message}</pre>
+                        </div>
+                    `;
+                }
+            }
+            
+            // Fetch events on page load
+            fetchEvents();
+            
+            // Add button to create a new event
+            const rootElement = document.getElementById('root');
+            const createButton = document.createElement('button');
+            createButton.className = 'mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600';
+            createButton.textContent = 'Create New Event';
+            createButton.onclick = createNewEvent;
+            rootElement.appendChild(createButton);
+            
+            async function createNewEvent() {
+                try {
+                    const now = new Date();
+                    const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+                    
+                    const response = await fetch('http://localhost:5005/graphql', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            query: `
+                                mutation {
+                                    createEvent(input: {
+                                        title: "New Test Event"
+                                        startTime: "${now.toISOString()}"
+                                        endTime: "${oneHourLater.toISOString()}"
+                                        status: TENTATIVE
+                                        allDay: false
+                                    }) {
+                                        id
+                                        title
+                                        startTime
+                                        endTime
+                                        status
+                                    }
+                                }
+                            `
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    console.log('Created event:', data);
+                    
+                    // Refresh events list
+                    fetchEvents();
+                } catch (error) {
+                    console.error('Error creating event:', error);
+                    alert('Error creating event: ' + error.message);
+                }
+            }
+        };
+    </script>
+</body>
+</html> 

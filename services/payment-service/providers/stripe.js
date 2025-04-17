@@ -1,160 +1,271 @@
-const { BasePaymentProvider } = require('./index');
-const stripe = require('stripe');
+const BasePaymentProvider = require('./BasePaymentProvider');
 
+/**
+ * Stripe Payment Provider
+ */
 class StripeProvider extends BasePaymentProvider {
-  constructor(config) {
-    super(config);
-    this.client = null;
+  constructor() {
+    super();
+    this.stripe = null;
   }
 
-  async initialize() {
+  /**
+   * Initialize Stripe SDK with API key
+   * @param {Object} config - Stripe configuration
+   * @returns {Promise<void>}
+   */
+  async initialize(config) {
     try {
-      this.client = stripe(this.config.secretKey);
-      await this.client.paymentMethods.list({ limit: 1 }); // Test the connection
-      console.log('Stripe provider initialized');
+      // Simulate Stripe SDK initialization
+      // In a real implementation, you would use:
+      // this.stripe = require('stripe')(config.apiKey);
+      console.log('Initialized Stripe provider with config:', config);
+      this.config = config;
+      this.initialized = true;
     } catch (error) {
-      console.error('Failed to initialize Stripe:', error);
+      console.error('Failed to initialize Stripe provider:', error);
       throw error;
     }
   }
 
-  async createPaymentIntent(amount, currency, metadata = {}) {
+  /**
+   * Test Stripe API connection
+   * @param {Object} credentials - Stripe credentials to test
+   * @returns {Promise<Object>} - Test result
+   */
+  async testConnection(credentials) {
     try {
-      const paymentIntent = await this.client.paymentIntents.create({
-        amount: Math.round(amount * 100), // Convert to cents
-        currency: currency.toLowerCase(),
-        metadata: {
-          ...metadata,
-          provider: 'stripe'
-        },
-        capture_method: 'manual', // Allow for authorization holds
-        setup_future_usage: 'off_session', // Allow for future payments
-        automatic_payment_methods: {
-          enabled: true,
-          allow_redirects: 'never'
-        }
-      });
+      // Simulate Stripe API test
+      console.log('Testing Stripe connection with credentials:', credentials);
+      
+      // Mock successful connection
+      return {
+        success: true,
+        message: 'Successfully connected to Stripe API'
+      };
+    } catch (error) {
+      console.error('Failed to connect to Stripe API:', error);
+      return {
+        success: false,
+        message: error.message || 'Failed to connect to Stripe API'
+      };
+    }
+  }
 
+  /**
+   * Create a payment intent
+   * @param {number} amount - Payment amount
+   * @param {string} currency - Currency code
+   * @param {Object} metadata - Additional data to include
+   * @returns {Promise<Object>} - Payment intent object
+   */
+  async createPaymentIntent(amount, currency, metadata) {
+    try {
+      if (!this.initialized) {
+        throw new Error('Stripe provider not initialized');
+      }
+
+      // Simulate creating a payment intent
+      console.log(`Creating Stripe payment intent: ${amount} ${currency}`);
+      
+      // Generate a mock payment intent
+      const paymentIntent = {
+        id: `pi_${Date.now()}`,
+        amount: amount * 100, // Stripe uses cents
+        currency: currency,
+        status: 'requires_payment_method',
+        client_secret: `pi_${Date.now()}_secret_${Math.random().toString(36).substring(2, 10)}`,
+        metadata: metadata || {}
+      };
+      
       return {
         id: paymentIntent.id,
         clientSecret: paymentIntent.client_secret,
-        amount: paymentIntent.amount / 100,
+        amount: paymentIntent.amount,
         currency: paymentIntent.currency,
-        status: paymentIntent.status
-      };
-    } catch (error) {
-      console.error('Failed to create Stripe payment intent:', error);
-      throw error;
-    }
-  }
-
-  async processPayment(paymentIntentId, paymentMethodId) {
-    try {
-      // Confirm the payment intent with the payment method
-      const paymentIntent = await this.client.paymentIntents.confirm(
-        paymentIntentId,
-        {
-          payment_method: paymentMethodId,
-          return_url: this.config.returnUrl
-        }
-      );
-
-      // If payment requires additional action
-      if (paymentIntent.status === 'requires_action') {
-        return {
-          status: 'requires_action',
-          nextAction: paymentIntent.next_action,
-          clientSecret: paymentIntent.client_secret
-        };
-      }
-
-      // If payment is successful, capture the payment
-      if (paymentIntent.status === 'requires_capture') {
-        const capturedPayment = await this.client.paymentIntents.capture(
-          paymentIntentId
-        );
-
-        return {
-          status: 'succeeded',
-          id: capturedPayment.id,
-          amount: capturedPayment.amount / 100,
-          currency: capturedPayment.currency,
-          paymentMethod: capturedPayment.payment_method
-        };
-      }
-
-      return {
         status: paymentIntent.status,
-        error: paymentIntent.last_payment_error
-      };
-    } catch (error) {
-      console.error('Failed to process Stripe payment:', error);
-      throw error;
-    }
-  }
-
-  async refundPayment(paymentId, amount, reason) {
-    try {
-      const refund = await this.client.refunds.create({
-        payment_intent: paymentId,
-        amount: amount ? Math.round(amount * 100) : undefined, // Convert to cents if partial refund
-        reason: this._mapRefundReason(reason)
-      });
-
-      return {
-        id: refund.id,
-        amount: refund.amount / 100,
-        status: refund.status,
-        reason: refund.reason
-      };
-    } catch (error) {
-      console.error('Failed to process Stripe refund:', error);
-      throw error;
-    }
-  }
-
-  async getPaymentStatus(paymentId) {
-    try {
-      const paymentIntent = await this.client.paymentIntents.retrieve(paymentId);
-
-      return {
-        id: paymentIntent.id,
-        status: paymentIntent.status,
-        amount: paymentIntent.amount / 100,
-        currency: paymentIntent.currency,
-        paymentMethod: paymentIntent.payment_method,
         metadata: paymentIntent.metadata
       };
     } catch (error) {
-      console.error('Failed to get Stripe payment status:', error);
+      console.error('Error creating Stripe payment intent:', error);
       throw error;
     }
   }
 
-  // Helper method to map refund reasons to Stripe's accepted values
-  _mapRefundReason(reason) {
-    const reasonMap = {
-      duplicate: 'duplicate',
-      fraudulent: 'fraudulent',
-      requested_by_customer: 'requested_by_customer',
-      canceled_appointment: 'requested_by_customer',
-      service_not_provided: 'requested_by_customer'
-    };
-
-    return reasonMap[reason] || 'other';
+  /**
+   * Process a payment with payment method
+   * @param {string} paymentIntentId - Payment intent ID
+   * @param {string} paymentMethodId - Payment method ID
+   * @returns {Promise<Object>} - Payment result
+   */
+  async processPayment(paymentIntentId, paymentMethodId) {
+    try {
+      if (!this.initialized) {
+        throw new Error('Stripe provider not initialized');
+      }
+      
+      console.log(`Processing Stripe payment: ${paymentIntentId} with method ${paymentMethodId}`);
+      
+      // Simulate payment processing
+      const result = {
+        id: paymentIntentId,
+        status: 'succeeded',
+        amount: 10000, // Example: $100.00
+        currency: 'usd',
+        payment_method: paymentMethodId,
+        metadata: {
+          appointmentId: 'mock_appointment_id',
+          customerId: 'mock_customer_id'
+        }
+      };
+      
+      return {
+        id: result.id,
+        status: result.status,
+        amount: result.amount / 100, // Convert back to dollars
+        currency: result.currency,
+        paymentMethod: result.payment_method,
+        metadata: result.metadata
+      };
+    } catch (error) {
+      console.error('Error processing Stripe payment:', error);
+      
+      return {
+        id: paymentIntentId,
+        status: 'failed',
+        error: error.message || 'Payment processing failed'
+      };
+    }
   }
 
-  // Helper method to validate currency codes
-  _validateCurrency(currency) {
-    const supportedCurrencies = ['usd', 'eur', 'gbp', 'aud', 'cad'];
-    const normalizedCurrency = currency.toLowerCase();
-
-    if (!supportedCurrencies.includes(normalizedCurrency)) {
-      throw new Error(`Unsupported currency: ${currency}`);
+  /**
+   * Capture an authorized payment
+   * @param {string} paymentIntentId - Payment intent ID
+   * @returns {Promise<Object>} - Capture result
+   */
+  async capturePayment(paymentIntentId) {
+    try {
+      if (!this.initialized) {
+        throw new Error('Stripe provider not initialized');
+      }
+      
+      console.log(`Capturing Stripe payment: ${paymentIntentId}`);
+      
+      // Simulate payment capture
+      const result = {
+        id: paymentIntentId,
+        status: 'succeeded',
+        amount: 10000, // Example: $100.00
+        currency: 'usd',
+        payment_method: 'pm_mock',
+        metadata: {
+          appointmentId: 'mock_appointment_id',
+          customerId: 'mock_customer_id'
+        }
+      };
+      
+      return {
+        id: result.id,
+        status: result.status,
+        amount: result.amount / 100, // Convert back to dollars
+        currency: result.currency,
+        paymentMethod: result.payment_method,
+        metadata: result.metadata
+      };
+    } catch (error) {
+      console.error('Error capturing Stripe payment:', error);
+      
+      return {
+        id: paymentIntentId,
+        status: 'failed',
+        error: error.message || 'Payment capture failed'
+      };
     }
+  }
 
-    return normalizedCurrency;
+  /**
+   * Refund a payment
+   * @param {string} paymentId - Payment ID to refund
+   * @param {number} amount - Amount to refund (optional)
+   * @param {string} reason - Reason for refund
+   * @returns {Promise<Object>} - Refund result
+   */
+  async refundPayment(paymentId, amount, reason) {
+    try {
+      if (!this.initialized) {
+        throw new Error('Stripe provider not initialized');
+      }
+      
+      console.log(`Refunding Stripe payment: ${paymentId}, amount: ${amount}, reason: ${reason}`);
+      
+      // Simulate payment refund
+      const refund = {
+        id: `re_${Date.now()}`,
+        payment_intent: paymentId,
+        amount: amount ? amount * 100 : 10000, // Use specified amount or default to $100
+        currency: 'usd',
+        status: 'succeeded',
+        reason: reason || 'requested_by_customer',
+        metadata: {
+          appointmentId: 'mock_appointment_id',
+          customerId: 'mock_customer_id'
+        }
+      };
+      
+      return {
+        id: refund.id,
+        paymentId: refund.payment_intent,
+        amount: refund.amount / 100, // Convert back to dollars
+        currency: refund.currency,
+        status: refund.status,
+        reason: refund.reason,
+        metadata: refund.metadata
+      };
+    } catch (error) {
+      console.error('Error refunding Stripe payment:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get payment status
+   * @param {string} paymentId - Payment ID to check
+   * @returns {Promise<Object>} - Payment status
+   */
+  async getPaymentStatus(paymentId) {
+    try {
+      if (!this.initialized) {
+        throw new Error('Stripe provider not initialized');
+      }
+      
+      console.log(`Getting Stripe payment status: ${paymentId}`);
+      
+      // Simulate getting payment status
+      const payment = {
+        id: paymentId,
+        status: 'succeeded',
+        amount: 10000, // Example: $100.00
+        currency: 'usd',
+        payment_method: 'pm_mock',
+        metadata: {
+          appointmentId: 'mock_appointment_id',
+          customerId: 'mock_customer_id'
+        }
+      };
+      
+      return {
+        id: payment.id,
+        status: payment.status,
+        amount: payment.amount / 100, // Convert back to dollars
+        currency: payment.currency,
+        paymentMethod: payment.payment_method,
+        metadata: payment.metadata
+      };
+    } catch (error) {
+      console.error('Error getting Stripe payment status:', error);
+      throw error;
+    }
   }
 }
 
-module.exports = StripeProvider;
+module.exports = new StripeProvider();

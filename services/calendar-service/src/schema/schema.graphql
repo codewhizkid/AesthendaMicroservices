@@ -1,0 +1,152 @@
+scalar DateTime
+scalar JSON
+
+enum EventStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+enum EventType {
+  APPOINTMENT
+  BLOCKOUT
+  SPECIAL_EVENT
+}
+
+enum ResourceType {
+  STYLIST
+  ROOM
+  EQUIPMENT
+}
+
+enum RecurrenceType {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+type Event {
+  id: ID!
+  tenantId: String!
+  title: String!
+  startTime: DateTime!
+  endTime: DateTime!
+  status: EventStatus!
+  type: EventType!
+  resourceId: ID
+  clientId: ID
+  stylistId: ID
+  color: String
+  metadata: JSON
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type Resource {
+  id: ID!
+  tenantId: String!
+  title: String!
+  type: ResourceType!
+  availability: [Availability!]!
+  metadata: JSON
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type Availability {
+  startTime: String!
+  endTime: String!
+  recurrence: RecurrenceType
+}
+
+type BusinessHours {
+  id: ID!
+  tenantId: String!
+  dayOfWeek: Int!
+  startTime: String!
+  endTime: String!
+  isOpen: Boolean!
+  specialDate: DateTime
+  metadata: JSON
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+input EventInput {
+  title: String!
+  startTime: DateTime!
+  endTime: DateTime!
+  type: EventType!
+  resourceId: ID
+  clientId: ID
+  stylistId: ID
+  color: String
+  metadata: JSON
+}
+
+input ResourceInput {
+  title: String!
+  type: ResourceType!
+  availability: [AvailabilityInput!]!
+  metadata: JSON
+}
+
+input AvailabilityInput {
+  startTime: String!
+  endTime: String!
+  recurrence: RecurrenceType
+}
+
+input BusinessHoursInput {
+  dayOfWeek: Int!
+  startTime: String!
+  endTime: String!
+  isOpen: Boolean!
+  specialDate: DateTime
+  metadata: JSON
+}
+
+input CalendarViewFilter {
+  startDate: DateTime!
+  endDate: DateTime!
+  resourceIds: [ID!]
+  eventTypes: [EventType!]
+}
+
+type CalendarView {
+  events: [Event!]!
+  resources: [Resource!]!
+  businessHours: [BusinessHours!]!
+}
+
+type Query {
+  _empty: String
+  getCalendarView(filter: CalendarViewFilter!): CalendarView!
+  getEvent(id: ID!): Event
+  getResource(id: ID!): Resource
+  getBusinessHours(tenantId: String!, dayOfWeek: Int!): BusinessHours
+}
+
+type Mutation {
+  _empty: String
+  createEvent(input: EventInput!): Event!
+  updateEvent(id: ID!, input: EventInput!): Event!
+  deleteEvent(id: ID!): Boolean!
+  updateEventStatus(id: ID!, status: EventStatus!): Event!
+  
+  createResource(input: ResourceInput!): Resource!
+  updateResource(id: ID!, input: ResourceInput!): Resource!
+  deleteResource(id: ID!): Boolean!
+  
+  createBusinessHours(input: BusinessHoursInput!): BusinessHours!
+  updateBusinessHours(id: ID!, input: BusinessHoursInput!): BusinessHours!
+  deleteBusinessHours(id: ID!): Boolean!
+}
+
+type Subscription {
+  _empty: String
+  eventUpdated(tenantId: String!): Event!
+  resourceUpdated(tenantId: String!): Resource!
+  businessHoursUpdated(tenantId: String!): BusinessHours!
+} 

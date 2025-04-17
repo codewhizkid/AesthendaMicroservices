@@ -1,0 +1,53 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+	•	Unified Technology Stack & Versioning:
+	•	All backend services use a consistent Node.js environment (v18.x/20.x) and are built with TypeScript.
+	•	Standardized dependencies across services (e.g., Apollo Server 4.12.0, Mongoose 8.1.0, GraphQL 16.10.0).
+	•	The frontend is built using React with TypeScript, Apollo Client (for GraphQL), and styled with Tailwind CSS.
+	•	A common build process and tooling (Vite, ESLint, Prettier) is applied uniformly across all modules.
+	•	Consistent Service Structure & Code Organization:
+	•	Every microservice (Auth, Tenant, Appointment, Payment, Notification, Analytics, Calendar) follows a standardized directory structure with dedicated folders for models, resolvers/controllers, middleware, configuration, and tests.
+	•	Shared utilities, middleware, and common components are centralized in a shared repository, promoting reuse and consistency.
+	•	Centralized Configuration & Environment Management:
+	•	All services load configuration through centralized modules that read from .env files, use feature flags, and provide default values.
+	•	No hardcoded service URLs or sensitive data; every external dependency is dynamically managed.
+	•	Robust Authentication, Tenant Isolation & RBAC:
+	•	The system uses JWT-based authentication that embeds tenantId and role information.
+	•	Middleware across all services enforces tenant isolation, ensuring that each operation (query/mutation) is filtered by tenantId.
+	•	Role-based access control is standardized, with consistent role definitions (e.g., system_admin, salon_admin, stylist, client) and uniform permission enforcement in all resolvers.
+	•	All core data models (User, Appointment, Service, etc.) include a tenantId field.
+	•	Structured Error Handling & Logging:
+	•	A centralized error handling middleware is in place in every service, ensuring that errors are formatted consistently and logged in a structured way.
+	•	Logging is handled by a dedicated library (like Winston or pino), which includes tenant context and supports audit logging for sensitive actions.
+	•	Unified monitoring is implemented to track errors, performance, and critical events.
+	•	Comprehensive Testing & CI/CD:
+	•	All services are covered by a robust suite of unit, integration, and end-to-end tests that verify tenant isolation, RBAC, and real-time updates.
+	•	A fully implemented CI/CD pipeline (e.g., via GitHub Actions) runs tests, linting, builds, and deployments consistently for all services.
+	•	Version-controlled, incremental migration scripts are in place for any schema changes (such as the inclusion of tenantId), with rollback capabilities integrated into the deployment process.
+	•	Unified Frontend Experience & Integration:
+	•	The entire frontend is consolidated into a single React/TypeScript codebase, using Apollo Client for GraphQL operations and managing state with Context API (or Redux).
+	•	The frontend dynamically adapts its views based on user roles (client, stylist, front desk, admin) and loads tenant-specific branding and configurations.
+	•	Real-time updates are integrated via GraphQL subscriptions or WebSockets, ensuring the UI reflects changes immediately.
+	•	Advanced Analytics & Real-Time Data:
+	•	Dedicated API endpoints provide tenant-specific analytics for revenue, booking trends, staff performance, and operational metrics.
+	•	Real-time dashboards display live data via subscriptions, offering actionable insights to tenants.
+	•	Tenants can generate custom reports, export data, and use analytics to optimize their operations.
+	•	Database Isolation & Migration:
+	•	A unified data model with strict tenant isolation is maintained across all services through the consistent use of tenantId.
+	•	Robust migration scripts handle schema changes seamlessly with proper versioning and rollback mechanisms.
+
+⸻
+
+Conclusion
+
+This unified, standardized state ensures that Aesthenda is:
+	•	Maintainable and scalable, with every service adhering to a clear, consistent structure.
+	•	Secure and robust, enforcing tenant isolation and role-based access across all operations.
+	•	User-friendly and marketable, with a cohesive frontend that delivers a consistent experience tailored to each tenant.
+	•	Future-proofed, with comprehensive testing, CI/CD, and migration strategie
+- You can @O verall Architecture & Tech Stack
+- You can use markdown but dont have to

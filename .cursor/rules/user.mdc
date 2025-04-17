@@ -1,0 +1,16 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Responsive, Consistent UI:
+	•	Build the front end using consistent design guidelines (e.g., Tailwind CSS) and centralized state management (e.g., React Context or Redux).
+	•	Ensure that the UI adapts based on user roles (e.g., a unified dashboard with conditional rendering for admin, stylist, and client views).
+	•	Real-Time Updates:
+	•	Integrate GraphQL subscriptions or WebSockets to provide real-time UI updates that reflect back-end changes immediately (critical for booking systems).
+	•	Branding and Customization:
+	•	Allow tenants to customize client-facing pages (white-label options), ensuring that their branding appears consistently across the platform.
+
+- You can @ files here
+- You can use markdown but dont have to

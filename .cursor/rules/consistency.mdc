@@ -1,0 +1,20 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Centralized Configuration:
+	•	Use a central module to manage environment variables, feature flags, and configuration options for all services.
+	•	Standardized API Contracts:
+	•	Define your API using GraphQL schemas as contracts. This ensures every service adheres to a known structure.
+	•	Code Reusability:
+	•	Create shared libraries and middleware (for logging, error handling, tenant verification, etc.) to avoid code duplication.
+	•	Automated Testing:
+	•	Write unit, integration, and end-to-end tests. Automated tests are critical for catching regression errors and ensuring multi-tenancy logic works as intended.
+	•	Documentation & Code Reviews:
+	•	Maintain comprehensive documentation for APIs, data models, and system architecture.
+	•	Regularly conduct code reviews to enforce coding standards and best practices.
+
+- You can @ files here
+- You can use markdown but dont have to

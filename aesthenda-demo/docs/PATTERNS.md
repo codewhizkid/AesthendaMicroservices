@@ -231,3 +231,10 @@ Our application uses the following common components:
 8. `Modal`: For dialogs and popups
 
 Refer to the component documentation for specific usage details and props.
+
+## Additional Documentation
+
+For specific feature implementations, refer to:
+
+- [Navigation & Routing](./navigation/ROUTES.md)
+- [Client Booking System](./BOOKING_SYSTEM.md)

@@ -16,6 +16,16 @@ import Dashboard from './pages/Dashboard';
 import StaffManagement from './pages/StaffManagement';
 import SalonSettings from './pages/SalonSettings';
 import AppointmentManagement from './pages/AppointmentManagement';
+import PaymentTransactions from './pages/PaymentTransactions';
+import PaymentDetails from './pages/PaymentDetails';
+import WebhookEvents from './pages/WebhookEvents';
+import StaffSchedule from './pages/StaffSchedule';
+import SettingsPage from './pages/SettingsPage';
+
+// Client booking pages
+import BookingPortal from './pages/client/BookingPortal';
+import BookingPage from './pages/client/BookingPage';
+import ManageAppointments from './pages/client/ManageAppointments';
 
 // Route guards
 import PrivateRoute from './components/PrivateRoute';
@@ -49,6 +59,11 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/registration-success" element={<RegistrationSuccess />} />
+            
+            {/* Client Booking Portal Routes */}
+            <Route path="/:tenantId" element={<BookingPortal />} />
+            <Route path="/:tenantId/booking/:step" element={<BookingPage />} />
+            <Route path="/:tenantId/manage-appointments" element={<ManageAppointments />} />
             
             {/* Registration and onboarding flow */}
             <Route 
@@ -102,10 +117,46 @@ function App() {
               } 
             />
             <Route 
+              path="/dashboard/schedule" 
+              element={
+                <PrivateRoute>
+                  <StaffSchedule />
+                </PrivateRoute>
+              } 
+            />
+            <Route 
               path="/dashboard/settings" 
               element={
                 <PrivateRoute>
-                  <SalonSettings />
+                  <SettingsPage />
+                </PrivateRoute>
+              } 
+            />
+            
+            {/* Payment Transaction Routes */}
+            <Route 
+              path="/dashboard/payments" 
+              element={
+                <PrivateRoute>
+                  <PaymentTransactions />
+                </PrivateRoute>
+              } 
+            />
+            <Route 
+              path="/dashboard/payments/:paymentId" 
+              element={
+                <PrivateRoute>
+                  <PaymentDetails />
+                </PrivateRoute>
+              } 
+            />
+            
+            {/* Webhook Events Route */}
+            <Route 
+              path="/dashboard/webhook-events" 
+              element={
+                <PrivateRoute>
+                  <WebhookEvents />
                 </PrivateRoute>
               } 
             />

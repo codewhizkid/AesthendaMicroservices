@@ -1,0 +1,138 @@
+enum TimeOffRequestStatus {
+  PENDING
+  APPROVED
+  DENIED
+  CANCELLED
+}
+
+enum TimeOffRequestType {
+  VACATION
+  SICK
+  PERSONAL
+  OTHER
+}
+
+type TimeOffRequest {
+  id: ID!
+  tenantId: String!
+  staffId: String!
+  staff: User
+  type: TimeOffRequestType!
+  status: TimeOffRequestStatus!
+  startDate: DateTime!
+  endDate: DateTime!
+  allDay: Boolean!
+  startTime: String
+  endTime: String
+  reason: String!
+  notes: String
+  requestedAt: DateTime!
+  reviewedAt: DateTime
+  reviewedBy: String
+  reviewer: User
+  reviewNotes: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+input TimeOffRequestInput {
+  staffId: String!
+  type: TimeOffRequestType!
+  startDate: DateTime!
+  endDate: DateTime!
+  allDay: Boolean!
+  startTime: String
+  endTime: String
+  reason: String!
+  notes: String
+}
+
+input TimeOffRequestUpdateInput {
+  type: TimeOffRequestType
+  startDate: DateTime
+  endDate: DateTime
+  allDay: Boolean
+  startTime: String
+  endTime: String
+  reason: String
+  notes: String
+  status: TimeOffRequestStatus
+  reviewNotes: String
+}
+
+input TimeOffRequestFilterInput {
+  staffId: String
+  type: [TimeOffRequestType!]
+  status: [TimeOffRequestStatus!]
+  startDate: DateTime
+  endDate: DateTime
+}
+
+type TimeOffRequestConnection {
+  edges: [TimeOffRequest!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+extend type Query {
+  # Get a single time-off request by ID
+  timeOffRequest(id: ID!): TimeOffRequest
+  
+  # Get time-off requests with filtering and pagination
+  timeOffRequests(
+    filter: TimeOffRequestFilterInput
+    pagination: PaginationInput
+    sortBy: String
+    sortOrder: SortOrder
+  ): TimeOffRequestConnection!
+
+  # Get pending time-off requests for approval
+  pendingTimeOffRequests(
+    pagination: PaginationInput
+  ): TimeOffRequestConnection!
+  
+  # Check if a staff member has time-off during a specific date range
+  staffHasTimeOff(
+    staffId: String!
+    startDate: DateTime!
+    endDate: DateTime!
+  ): Boolean!
+}
+
+extend type Mutation {
+  # Create a new time-off request
+  createTimeOffRequest(
+    input: TimeOffRequestInput!
+  ): TimeOffRequest!
+  
+  # Update an existing time-off request
+  updateTimeOffRequest(
+    id: ID!
+    input: TimeOffRequestUpdateInput!
+  ): TimeOffRequest!
+  
+  # Approve a time-off request
+  approveTimeOffRequest(
+    id: ID!
+    reviewNotes: String
+  ): TimeOffRequest!
+  
+  # Deny a time-off request
+  denyTimeOffRequest(
+    id: ID!
+    reviewNotes: String
+  ): TimeOffRequest!
+  
+  # Cancel a time-off request
+  cancelTimeOffRequest(
+    id: ID!
+  ): TimeOffRequest!
+}
+
+extend type Subscription {
+  # Subscribe to time-off request updates for a tenant
+  timeOffRequestUpdated(tenantId: String!): TimeOffRequest
+  
+  # Subscribe to own time-off request status changes
+  myTimeOffRequestStatusChanged: TimeOffRequest
+} 

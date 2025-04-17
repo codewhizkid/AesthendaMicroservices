@@ -1,0 +1,23 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Building a full-stack SaaS like Aesthenda requires careful planning and adherence to the following fundamental rules:
+	•	Modular, Scalable Architecture:
+Use a microservices approach with a unified API gateway.
+	•	Robust Multi-Tenancy & RBAC:
+Enforce data isolation and role-based permissions through all layers (data model, resolvers, middleware).
+	•	Centralized, Consistent Configuration and Error Handling:
+Ensure that configuration, logging, and error management are handled in one place.
+	•	Strong Security Practices:
+Implement JWT, OAuth, encryption, audit logging, and monitoring to keep the system secure.
+	•	Automated Testing and CI/CD:
+Build thorough tests and maintain automated pipelines to ensure quality and consistency in deployments.
+	•	Responsive User Experience:
+Integrate a flexible, real-time front end that adapts to user roles and tenant-specific branding.
+
+
+- You can @ files here
+- You can use markdown but dont have to

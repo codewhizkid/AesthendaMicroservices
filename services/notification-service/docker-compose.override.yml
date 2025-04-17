@@ -1,0 +1,19 @@
+version: '3'
+
+services:
+  notification-service:
+    build:
+      context: ./services/notification-service
+    environment:
+      # Firebase Configuration
+      - FIREBASE_SERVICE_ACCOUNT_PATH=/app/.firebase/service-account.json
+      - FIREBASE_DATABASE_URL=https://aesthenda-app.firebaseio.com
+      # Optional: Add these mock tokens for testing
+      - MOCK_USER_TOKENS=test-token-1,test-token-2
+      
+      # Twilio Configuration
+      - TWILIO_ACCOUNT_SID=AC00000000000000000000000000000000
+      - TWILIO_AUTH_TOKEN=your_auth_token
+      - TWILIO_PHONE_NUMBER=+15555555555
+    volumes:
+      - ./services/notification-service/.firebase:/app/.firebase 

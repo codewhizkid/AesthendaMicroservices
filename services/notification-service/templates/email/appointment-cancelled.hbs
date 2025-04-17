@@ -1,0 +1,24 @@
+{{#> base title="Appointment Cancelled" subject="Your Appointment Has Been Cancelled"}}
+    <p>Dear {{clientName}},</p>
+    
+    <p>Your appointment has been cancelled. Here are the details of the cancelled appointment:</p>
+    
+    <div class="appointment-details">
+        <p><strong>Stylist:</strong> {{stylistName}}</p>
+        <p><strong>Date:</strong> {{formattedDate}}</p>
+        <p><strong>Time:</strong> {{formattedTime}}</p>
+        {{#if reason}}
+        <p><strong>Reason:</strong> {{reason}}</p>
+        {{/if}}
+    </div>
+    
+    <p>We apologize for any inconvenience this may have caused.</p>
+    
+    {{#if bookingUrl}}
+    <p>
+        <a href="{{bookingUrl}}" class="button">Book a New Appointment</a>
+    </p>
+    {{/if}}
+    
+    <p>If you have any questions or would like to schedule a new appointment, please don't hesitate to contact us.</p>
+{{/base}} 

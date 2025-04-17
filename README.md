@@ -7,7 +7,7 @@ Aesthenda is a scalable, microservices-based salon booking system.
 - **User Service (GraphQL)**: Handles authentication and user profiles.
 - **Appointment Service (GraphQL)**: Manages booking & scheduling.
 - **Notification Service (RabbitMQ)**: Handles email/SMS notifications.
-- **Payment Service (Future Integration)**: Manages transactions.
+- **Payment Service**: Manages payment providers, transactions, and refunds.
 - **API Gateway**: Routes API calls to appropriate services.
 
 ## 🚀 Setup Instructions
@@ -27,7 +27,59 @@ docker-compose up --build
 - API Gateway: [http://localhost:4000](http://localhost:4000)
 - User Service: [http://localhost:5001](http://localhost:5001)
 - Appointment Service: [http://localhost:5002](http://localhost:5002)
+- Notification Service: [http://localhost:5003](http://localhost:5003)
+- Email Preview Tool: [http://localhost:5003/email-preview.html](http://localhost:5003/email-preview.html) (requires authentication)
+- Payment Service: [http://localhost:5004](http://localhost:5004)
 - RabbitMQ Dashboard: [http://localhost:15672](http://localhost:15672) (User: guest, Pass: guest)
+- Frontend Client: [http://localhost:8080](http://localhost:8080)
+- Admin Dashboard: [http://localhost:8080/admin](http://localhost:8080/admin)
+
+### 4️⃣ Admin Access
+The system includes an admin dashboard for managing all aspects of the platform. 
+- See [Admin Dashboard Documentation](docs/admin-access.md) for credentials and usage instructions.
+- Default admin login: admin@aesthenda.com / Admin123!
+
+### 5️⃣ SMS Notifications
+The notification service supports SMS messaging through Twilio integration:
+- See [Twilio Setup Guide](docs/twilio-setup-guide.md) for detailed instructions.
+- Set valid Twilio credentials in the notification service's `.env` file.
+
+### 6️⃣ Email Preview Tool
+The email template preview tool provides a way to test email templates with different tenant branding:
+- See [Email Preview Tool Documentation](docs/email-preview-tool.md) for usage instructions.
+- Tool now requires authentication, see [Email Preview Authentication](docs/email-preview-auth.md) for details.
+- Default login: admin@aesthenda.com / Admin123! (system admin) or salon@example.com / Salon123! (salon admin)
+
+### 7️⃣ Payment System
+
+- Complete payment processing system with multi-provider support
+- Admin dashboard for payment transaction management and refunds
+- Integration with appointment booking flow for seamless payments
+- Tenant-specific payment provider configuration
+- Webhook support for Stripe, Square, and PayPal payment event handling
+- See [Payment System Documentation](docs/payment-system.md) for comprehensive details
+- See [Payment Webhooks Documentation](docs/payment-webhooks.md) for webhook setup and handling
+- Supported payment providers: Stripe, Square, and PayPal
+
+### 8️⃣ Tenant Payment Providers
+
+- Each tenant (salon) can configure their own payment provider
+- [Documentation on tenant payment provider configuration](docs/tenant-payment-providers.md)
+- Supported payment providers: Stripe, Square, and PayPal
+- Features for validating credentials and testing connections
+
+### 9️⃣ Payment Events Integration
+
+- Payment service publishes events via RabbitMQ when payment status changes
+- Appointment service consumes these events to update appointment status
+- [Documentation on payment RabbitMQ integration](docs/payment-rabbitmq-integration.md)
+- Enabled event-driven synchronization between payment and appointment workflows
+- Includes robust error handling with dead-letter queues and retry mechanisms
+
+### 10️⃣ Payment Provider Webhooks
+
+- **Payment Provider Webhooks**: Support for Stripe, Square, and PayPal payment events with webhook endpoints. [Payment Webhooks Documentation](docs/payment-webhooks.md) for setup and handling.
+- **Webhook Event Monitoring**: Admin interface for viewing, filtering, and managing webhook events, with comprehensive event logging and test webhook generation tools.
 
 ---
 
@@ -35,6 +87,33 @@ docker-compose up --build
 - Implement user authentication with OAuth 2.0 & JWT.
 - Add real-time booking availability checks.
 - Expand RabbitMQ messaging to support appointment confirmations.
+
+## 📨 Event-Driven Architecture
+
+Aesthenda implements an event-driven architecture using RabbitMQ for asynchronous communication between microservices.
+
+### Key Features
+
+- **Decoupled Services**: Services communicate via events without direct dependencies
+- **Real-Time Processing**: Event-based triggers for immediate reactions to system changes
+- **Tenant Isolation**: All events maintain proper tenant context throughout the system
+- **Resilient Communication**: Message persistence and retry mechanisms ensure reliability
+
+### Event Flow Example
+
+1. Client books an appointment through the API Gateway
+2. Appointment Service creates the appointment and publishes an `APPOINTMENT_CREATED` event
+3. Notification Service consumes this event and sends a confirmation email to both client and stylist
+4. Other services (Analytics, Calendar) can consume the same event for their specific needs
+
+### Implementation
+
+- **Exchange**: `appointment_events` (topic exchange)
+- **Queues**: Various services subscribe to relevant events using routing patterns
+- **Event Schema**: Standardized event structure with required fields (tenantId, timestamp, etc.)
+
+For detailed documentation on the RabbitMQ integration, see:
+- [Appointment Service RabbitMQ Documentation](services/appointment-service-ts/docs/rabbitmq-integration.md)
 
 ## 🔐 Authentication System
 

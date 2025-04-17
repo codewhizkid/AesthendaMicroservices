@@ -1,10 +1,10 @@
 ---
-description: Maintain Up-to-Date Documentation: Document your data models, API endpoints, and configuration settings. Clear documentation helps ensure that all team members are aligned on how the system works and what changes are being made. 	•	Regular Code Reviews: Encourage code reviews focused on consistency and adherence to the architecture. This helps ensure that new changes don’t break existing functionality or deviate from the planned structure.
+description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
 
-# Your rule content
+# Maintain Up-to-Date Documentation: Document your data models, API endpoints, and configuration settings. Clear documentation helps ensure that all team members are aligned on how the system works and what changes are being made. 	•	Regular Code Reviews: Encourage code reviews focused on consistency and adherence to the architecture. This helps ensure that new changes don’t break existing functionality or deviate from the planned structure.
 
 - You can @ files here
 - You can use markdown but dont have to

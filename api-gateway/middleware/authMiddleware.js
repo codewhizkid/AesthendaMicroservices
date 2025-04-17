@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const config = require('../config');
+const { tenantError } = require('../utils/errorHandler');
 
 /**
  * Authentication middleware to extract user from JWT token
@@ -26,7 +27,7 @@ const authenticateToken = (req) => {
     
     // Return the user information from the token
     return {
-      id: decoded.id,
+      id: decoded.userId || decoded.id,
       email: decoded.email,
       role: decoded.role,
       tenantId: decoded.tenantId,
@@ -39,7 +40,47 @@ const authenticateToken = (req) => {
   }
 };
 
-// Middleware to check for required roles
+/**
+ * Extract tenant ID from various sources (headers, token, query)
+ * @param {Object} req - The request object
+ * @param {Object} user - The authenticated user object from token
+ * @returns {string|null} - The tenant ID or null
+ */
+const extractTenantId = (req, user = null) => {
+  // First check explicit header
+  if (req.headers['x-tenant-id']) {
+    return req.headers['x-tenant-id'];
+  }
+  
+  // Check if we have it from user token
+  if (user && user.tenantId) {
+    return user.tenantId;
+  }
+  
+  // Check if in the request body for GraphQL operations
+  if (req.body && req.body.variables && req.body.variables.tenantId) {
+    return req.body.variables.tenantId;
+  }
+  
+  // Check query params (for REST endpoints)
+  if (req.query && req.query.tenantId) {
+    return req.query.tenantId;
+  }
+  
+  // Default tenant if in development
+  if (config.server.isDev) {
+    return config.getEnv('DEFAULT_TENANT_ID', 'default_tenant');
+  }
+  
+  return null;
+};
+
+/**
+ * Middleware to check for required roles
+ * @param {Object} user - The authenticated user
+ * @param {Array} requiredRoles - Array of required roles
+ * @returns {boolean} - Whether user has permission
+ */
 const checkRole = (user, requiredRoles) => {
   if (!user) {
     return false;
@@ -52,7 +93,13 @@ const checkRole = (user, requiredRoles) => {
   return requiredRoles.includes(user.role);
 };
 
-// Middleware to check if user is a stylist and belongs to specified tenant
+/**
+ * Middleware to check if user is a stylist and belongs to specified tenant
+ * @param {Object} user - The authenticated user
+ * @param {string} tenantId - The tenant ID to check
+ * @param {string} stylist_id - The stylist ID to check
+ * @returns {boolean} - Whether user has access
+ */
 const checkStylistAccess = (user, tenantId, stylist_id) => {
   if (!user) {
     return false;
@@ -81,8 +128,23 @@ const checkStylistAccess = (user, tenantId, stylist_id) => {
   return false;
 };
 
+/**
+ * Validate tenant ID is present for operations that require it
+ * @param {string|null} tenantId - The tenant ID to validate
+ * @param {boolean} required - Whether tenant ID is required
+ * @throws {ApolloError} When tenant ID is required but missing
+ */
+const validateTenantId = (tenantId, required = true) => {
+  if (required && !tenantId) {
+    throw tenantError('Tenant ID is required for this operation');
+  }
+  return tenantId;
+};
+
 module.exports = {
   authenticateToken,
+  extractTenantId,
   checkRole,
-  checkStylistAccess
+  checkStylistAccess,
+  validateTenantId
 }; 

@@ -1,0 +1,23 @@
+{{#> base title="Appointment Confirmation" subject="Your Appointment Confirmation"}}
+    <p>Dear {{clientName}},</p>
+    
+    <p>Your appointment has been confirmed. Here are the details:</p>
+    
+    <div class="appointment-details">
+        <p><strong>Stylist:</strong> {{stylistName}}</p>
+        <p><strong>Date:</strong> {{formattedDate}}</p>
+        <p><strong>Time:</strong> {{formattedTime}}</p>
+        <p><strong>Services:</strong> {{services}}</p>
+        <p><strong>Total Price:</strong> ${{totalPrice}}</p>
+    </div>
+    
+    <p>We look forward to seeing you!</p>
+    
+    {{#if appointmentUrl}}
+    <p>
+        <a href="{{appointmentUrl}}" class="button">Manage Your Appointment</a>
+    </p>
+    {{/if}}
+    
+    <p>If you need to reschedule or cancel, please do so at least 24 hours in advance.</p>
+{{/base}} 

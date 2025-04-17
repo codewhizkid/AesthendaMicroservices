@@ -1,0 +1,18 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+	# Microservices & Modularity:
+	•	Break down your application into independent, loosely coupled services (e.g., Authentication, Tenant Management, Appointment Booking, Payment, Notifications, Analytics).
+	•	Use an API Gateway (GraphQL in this case) to offer a unified interface to your clients while keeping services decoupled.
+	•	Single Source of Truth:
+	•	Ensure that shared data (like tenant information) is maintained in one place (e.g., a central Tenant model) and that all services enforce data consistency and isolation by referencing it.
+	•	Scalability:
+	•	Design services so they can scale horizontally.
+	•	Use stateless services and externalize state (sessions, caching) using tools like Redis.
+	•	Event-Driven Communication:
+	•	Implement asynchronous messaging using a message broker (e.g., RabbitMQ) to decouple services and enable real-time updates.
+
+- You can @ files here
+- You can use markdown but dont have to

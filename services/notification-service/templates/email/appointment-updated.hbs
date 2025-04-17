@@ -1,0 +1,32 @@
+{{#> base title="Appointment Updated" subject="Your Appointment Has Been Updated"}}
+    <p>Dear {{clientName}},</p>
+    
+    <p>Your appointment has been updated. Here are the new details:</p>
+    
+    <div class="appointment-details">
+        <p><strong>Stylist:</strong> {{stylistName}}</p>
+        <p><strong>Date:</strong> {{formattedDate}}</p>
+        <p><strong>Time:</strong> {{formattedTime}}</p>
+        <p><strong>Services:</strong> {{services}}</p>
+        <p><strong>Total Price:</strong> ${{totalPrice}}</p>
+    </div>
+    
+    {{#if changes}}
+    <div style="background-color: #fff9e6; padding: 10px; border-radius: 5px; margin-top: 20px; border-left: 4px solid #ffcc00;">
+        <p><strong>Changes Made:</strong></p>
+        <ul>
+            {{#each changes}}
+            <li>{{this}}</li>
+            {{/each}}
+        </ul>
+    </div>
+    {{/if}}
+    
+    <p>If these changes don't work for you, please contact us to reschedule.</p>
+    
+    {{#if appointmentUrl}}
+    <p>
+        <a href="{{appointmentUrl}}" class="button">Manage Your Appointment</a>
+    </p>
+    {{/if}}
+{{/base}} 

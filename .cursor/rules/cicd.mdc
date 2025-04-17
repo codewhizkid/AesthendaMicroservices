@@ -1,0 +1,15 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# 	Continuous Integration & Deployment:
+	•	Set up automated pipelines (using tools like GitHub Actions, Jenkins, or GitLab CI) to run tests, build, and deploy your services.
+	•	Automate database migrations with version-controlled scripts that support rollbacks.
+	•	Monitoring & Rollback Strategies:
+	•	Implement real-time monitoring to track API performance, errors, and system health.
+	•	Prepare strategies for rapid rollback in case of deployment issues.
+
+- You can @ files here
+- You can use markdown but dont have to

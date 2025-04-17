@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Auth - Aesthenda</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load our authentication handler -->
+    <script src="/js/auth/login-handler.js"></script>
+</head>
+<body class="bg-gray-100 h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+        <h1 class="text-2xl font-bold mb-6 text-center text-indigo-600">Auth Debug Tool</h1>
+        
+        <!-- Credentials Info -->
+        <div class="mb-6 p-4 bg-blue-50 rounded-md">
+            <h2 class="font-semibold text-blue-700 mb-2">Test Credentials</h2>
+            <p class="text-sm text-gray-600"><span class="font-medium">Email:</span> admin@aesthenda.com</p>
+            <p class="text-sm text-gray-600"><span class="font-medium">Password:</span> Admin123!</p>
+        </div>
+        
+        <!-- Status Display -->
+        <div id="statusDisplay" class="mb-6 p-4 bg-gray-50 rounded-md">
+            <h2 class="font-semibold text-gray-700 mb-2">Status</h2>
+            <p id="loginStatus" class="text-sm">Checking login status...</p>
+            <div id="userInfo" class="mt-2 text-sm hidden"></div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="grid grid-cols-3 gap-4 mb-6">
+            <button id="loginBtn" class="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded">
+                Login
+            </button>
+            <button id="checkStatusBtn" class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded">
+                Check Status
+            </button>
+            <button id="logoutBtn" class="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded">
+                Logout
+            </button>
+        </div>
+        
+        <div class="text-sm text-gray-500">
+            <p>This tool helps debug authentication issues.</p>
+            <p>Check browser console (F12) for detailed logs.</p>
+        </div>
+    </div>
+
+    <script>
+        // Helper function to update the status display
+        function updateStatusDisplay(isLoggedIn, userData = null) {
+            const loginStatus = document.getElementById('loginStatus');
+            const userInfo = document.getElementById('userInfo');
+            
+            if (isLoggedIn) {
+                loginStatus.textContent = '✅ Logged in successfully';
+                loginStatus.className = 'text-sm text-green-600 font-medium';
+                
+                if (userData) {
+                    userInfo.innerHTML = `
+                        <div class="p-2 bg-green-50 rounded border border-green-100">
+                            <p><span class="font-medium">User ID:</span> ${userData.id}</p>
+                            <p><span class="font-medium">Email:</span> ${userData.email}</p>
+                            <p><span class="font-medium">Name:</span> ${userData.name}</p>
+                            <p><span class="font-medium">Role:</span> ${userData.role}</p>
+                            <p><span class="font-medium">Tenant ID:</span> ${userData.tenantId}</p>
+                        </div>
+                    `;
+                    userInfo.classList.remove('hidden');
+                }
+            } else {
+                loginStatus.textContent = '❌ Not logged in';
+                loginStatus.className = 'text-sm text-red-600 font-medium';
+                userInfo.classList.add('hidden');
+                userInfo.innerHTML = '';
+            }
+        }
+
+        // Setup event listeners when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Debug page initialized');
+            
+            // Login button event
+            document.getElementById('loginBtn').addEventListener('click', function() {
+                console.log('Login button clicked');
+                
+                // Test credentials
+                const email = 'admin@aesthenda.com';
+                const password = 'Admin123!';
+                
+                const result = window.AuthService.login(email, password);
+                
+                if (result.success) {
+                    updateStatusDisplay(true, result.user);
+                    console.log('Login successful', result);
+                } else {
+                    updateStatusDisplay(false);
+                    console.error('Login failed', result);
+                }
+            });
+            
+            // Check status button event
+            document.getElementById('checkStatusBtn').addEventListener('click', function() {
+                console.log('Check status button clicked');
+                
+                const isLoggedIn = window.AuthService.isLoggedIn();
+                const userData = window.AuthService.getCurrentUser();
+                
+                updateStatusDisplay(isLoggedIn, userData);
+                console.log('Login status:', isLoggedIn, userData);
+            });
+            
+            // Logout button event
+            document.getElementById('logoutBtn').addEventListener('click', function() {
+                console.log('Logout button clicked');
+                
+                window.AuthService.logout();
+                updateStatusDisplay(false);
+                console.log('User logged out');
+            });
+            
+            // Check status on page load
+            const isLoggedIn = window.AuthService.isLoggedIn();
+            const userData = window.AuthService.getCurrentUser();
+            updateStatusDisplay(isLoggedIn, userData);
+        });
+    </script>
+</body>
+</html> 

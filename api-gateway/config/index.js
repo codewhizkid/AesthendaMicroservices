@@ -84,12 +84,19 @@ const rateLimit = {
 
 // Service endpoints
 const services = {
+  // Auth service (previously User service)
   user: {
-    url: getEnv('USER_SERVICE_URL', 'http://user-service:5001'),
-    timeout: getIntEnv('USER_SERVICE_TIMEOUT', 5000),
+    // For backward compatibility, try AUTH_SERVICE_URL first, fall back to USER_SERVICE_URL
+    url: getEnv('AUTH_SERVICE_URL', getEnv('USER_SERVICE_URL', 'http://auth-service-ts:5001')),
+    timeout: getIntEnv('AUTH_SERVICE_TIMEOUT', getIntEnv('USER_SERVICE_TIMEOUT', 5000)),
+  },
+  auth: {
+    // Alias for user service, for clarity in new code
+    get url() { return services.user.url; },
+    get timeout() { return services.user.timeout; },
   },
   appointment: {
-    url: getEnv('APPOINTMENT_SERVICE_URL', 'http://appointment-service:5002'),
+    url: getEnv('APPOINTMENT_SERVICE_URL', 'http://appointment-service-ts:5002'),
     timeout: getIntEnv('APPOINTMENT_SERVICE_TIMEOUT', 5000),
   },
   notification: {
@@ -110,6 +117,18 @@ const graphql = {
   tracing: getBoolEnv('GRAPHQL_TRACING', false),
 };
 
+// Tenant configuration
+const tenant = {
+  defaultTenantId: getEnv('DEFAULT_TENANT_ID', 'default_tenant'),
+  headerName: getEnv('TENANT_HEADER_NAME', 'x-tenant-id'),
+};
+
+// Logging configuration
+const logging = {
+  level: getEnv('LOG_LEVEL', 'info'),
+  format: getEnv('LOG_FORMAT', 'json'),
+};
+
 // Export configuration
 module.exports = {
   server,
@@ -118,6 +137,8 @@ module.exports = {
   rateLimit,
   services,
   graphql,
+  tenant,
+  logging,
   // Utility functions
   getEnv,
   getIntEnv,

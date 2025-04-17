@@ -7,8 +7,9 @@ services:
       - "4000:4000"
     depends_on:
       - user-service
-      - appointment-service
+      - appointment-service-ts
       - notification-service
+      # - calendar-service
       - redis
     networks:
       - aesthenda-net
@@ -24,12 +25,22 @@ services:
     networks:
       - aesthenda-net
 
-  appointment-service:
-    build: ./services/appointment-service
+  appointment-service-ts:
+    build:
+      context: ./services/appointment-service-ts
     ports:
       - "5002:5002"
+    environment:
+      - MONGODB_URI=mongodb://mongo-appointment:27017/appointmentdb
+      - PORT=5002
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+      - RABBITMQ_NOTIFICATION_QUEUE=appointment_notifications
+      - RABBITMQ_PAYMENT_QUEUE=payment_events
+      - RABBITMQ_EVENTS_EXCHANGE=appointment_events
     depends_on:
       - mongo-appointment
+      - rabbitmq
+    restart: on-failure
     networks:
       - aesthenda-net
 
@@ -41,15 +52,47 @@ services:
       - rabbitmq
     networks:
       - aesthenda-net
+    environment:
+      - PORT=5003
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+      - RABBITMQ_NOTIFICATION_QUEUE=appointment_notifications
+      - RABBITMQ_EVENTS_EXCHANGE=appointment_events
+      - SMTP_HOST=smtp.example.com
+      - SMTP_PORT=587
+      - SMTP_SECURE=false
+      - SMTP_USER=example@example.com
+      - SMTP_PASS=password
+      - SMTP_FROM_ADDRESS=notifications@aesthenda.com
 
   payment-service:
-    build: ./services/payment-service
+    build:
+      context: ./services/payment-service
     ports:
       - "5004:5004"
+    environment:
+      - MONGODB_URI=mongodb://mongo-payment:27017/paymentdb
+      - PORT=5004
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+      - RABBITMQ_PAYMENT_QUEUE=payment_events
+      - RABBITMQ_EVENTS_EXCHANGE=appointment_events
     depends_on:
       - mongo-payment
+      - rabbitmq
+    restart: on-failure
     networks:
       - aesthenda-net
+
+  calendar-service:
+    build: ./services/calendar-service
+    ports:
+      - "5005:5005"
+    depends_on:
+      - mongo-calendar
+    networks:
+      - aesthenda-net
+    environment:
+      - MONGODB_URI=mongodb://mongo-calendar:27017/calendar
+      - PORT=5005
 
   mongo-user:
     image: mongo
@@ -81,6 +124,16 @@ services:
     networks:
       - aesthenda-net
 
+  mongo-calendar:
+    image: mongo
+    container_name: mongo-calendar
+    ports:
+      - "27020:27017"
+    volumes:
+      - mongo-calendar-data:/data/db
+    networks:
+      - aesthenda-net
+
   rabbitmq:
     image: "rabbitmq:3-management"
     container_name: rabbitmq
@@ -107,6 +160,7 @@ volumes:
   mongo-appointment-data:
   mongo-payment-data:
   redis-data:
+  mongo-calendar-data:
 
 networks:
   aesthenda-net:

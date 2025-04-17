@@ -78,6 +78,14 @@ yarn dev
 - Tailwind CSS
 - Context API for state management
 
+## Documentation
+
+For detailed documentation, check the following:
+
+- [Code Patterns](/docs/PATTERNS.md) - Standard patterns for component development
+- [Advanced Patterns](/docs/ADVANCED_PATTERNS.md) - More complex patterns and examples
+- [Frontend Routes](/docs/navigation/ROUTES.md) - Documentation of all available routes and navigation
+
 ## Multi-Tenant Implementation Details
 
 The application demonstrates several key aspects of a multi-tenant system:

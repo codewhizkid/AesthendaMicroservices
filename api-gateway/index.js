@@ -1,7 +1,7 @@
 const { ApolloServer } = require('apollo-server-express');
 const { gql } = require('apollo-server');
 const express = require('express');
-const { authenticateToken } = require('./middleware/authMiddleware');
+const { authenticateToken, extractTenantId, validateTenantId } = require('./middleware/authMiddleware');
 const jwt = require('jsonwebtoken');
 const fetch = require('node-fetch');
 const passport = require('passport');
@@ -16,6 +16,8 @@ const Redis = require('ioredis');
 const RedisStore = require('rate-limit-redis').default;
 const roleRoutes = require('./roleRoutes');
 const config = require('./config');
+const { callAuthService, callAppointmentService, callNotificationService, callPaymentService } = require('./utils/serviceClient');
+const { serviceUnavailableError, handleServiceErrors } = require('./utils/errorHandler');
 
 // Initialize Redis client
 const redisClient = new Redis(config.redis.url);
@@ -38,6 +40,7 @@ const typeDefs = gql`
     name: String!
     email: String!
     role: String!
+    tenantId: ID!
   }
 
   type AuthResponse {
@@ -61,6 +64,7 @@ const typeDefs = gql`
     email: String!
     password: String!
     role: String
+    tenantId: ID
   }
 
   type Query {
@@ -71,7 +75,7 @@ const typeDefs = gql`
 
   type Mutation {
     register(input: RegisterInput!): AuthResponse
-    login(email: String!, password: String!): AuthResponse
+    login(email: String!, password: String!, tenantId: ID): AuthResponse
     refreshToken(refreshToken: String!): RefreshTokenResponse
     logout(refreshToken: String!): Boolean
     logoutAll: Boolean
@@ -255,39 +259,36 @@ app.get('/auth/facebook/callback',
 
 // Helper function to process OAuth login through user service
 async function processOAuthLogin(provider, token, profile) {
-  const mutation = `
-    mutation {
-      oauthLogin(input: {
-        provider: ${provider.toUpperCase()},
-        token: "${token}",
-        profile: ${JSON.stringify(JSON.stringify(profile))}
-      }) {
-        token
-        refreshToken
-        user {
-          id
-          name
-          email
-          role
+  try {
+    const query = `
+      mutation {
+        oauthLogin(input: {
+          provider: ${provider.toUpperCase()},
+          token: "${token}",
+          profile: ${JSON.stringify(JSON.stringify(profile))}
+        }) {
+          token
+          refreshToken
+          user {
+            id
+            name
+            email
+            role
+          }
         }
       }
-    }
-  `;
+    `;
 
-  const response = await fetch(config.services.user.url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ query: mutation })
-  });
-
-  const data = await response.json();
-  if (data.errors) {
-    throw new Error(data.errors[0].message);
+    const data = await callAuthService({
+      query,
+      context: { headers: {} } // No auth needed for OAuth login
+    });
+    
+    return data.oauthLogin;
+  } catch (error) {
+    console.error('OAuth login error:', error);
+    throw error;
   }
-  
-  return data.data.oauthLogin;
 }
 
 // Create resolvers that forward requests to the user service
@@ -311,24 +312,15 @@ const resolvers = {
           }
         `;
 
-        const response = await fetch('http://user-service:5001', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': context.headers.authorization || ''
-          },
-          body: JSON.stringify({ query })
+        const data = await callAuthService({
+          query,
+          context
         });
-
-        const data = await response.json();
-        if (data.errors) {
-          throw new Error(data.errors[0].message);
-        }
         
-        return data.data.me;
+        return data.me;
       } catch (error) {
         console.error('Error fetching user profile:', error);
-        throw new Error('Failed to fetch user profile');
+        throw error;
       }
     },
     verifyResetToken: async (_, { token }) => {
@@ -342,36 +334,33 @@ const resolvers = {
           }
         `;
 
-        const response = await fetch('http://user-service:5001', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ query })
+        const data = await callAuthService({
+          query,
+          context: { headers: {} } // No auth needed for verifying reset token
         });
-
-        const data = await response.json();
-        if (data.errors) {
-          throw new Error(data.errors[0].message);
-        }
         
-        return data.data.verifyResetToken;
+        return data.verifyResetToken;
       } catch (error) {
         console.error('Error verifying reset token:', error);
-        throw new Error('Failed to verify reset token');
+        throw error;
       }
     }
   },
   Mutation: {
     register: async (_, { input }, context) => {
       try {
+        // Extract tenantId from context or input
+        const tenantId = extractTenantId(context.req, context.user) || input.tenantId;
+        validateTenantId(tenantId);
+        
         const mutation = `
           mutation {
             register(input: {
               name: "${input.name}",
               email: "${input.email}",
               password: "${input.password}",
-              role: ${input.role || 'client'}
+              role: ${input.role || 'CLIENT'},
+              tenantId: "${tenantId}"
             }) {
               token
               refreshToken
@@ -385,30 +374,26 @@ const resolvers = {
           }
         `;
 
-        const response = await fetch('http://user-service:5001', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ query: mutation })
+        const data = await callAuthService({
+          query: mutation,
+          context: { headers: {} } // No auth needed for registration
         });
-
-        const data = await response.json();
-        if (data.errors) {
-          throw new Error(data.errors[0].message);
-        }
         
-        return data.data.register;
+        return data.register;
       } catch (error) {
-        console.error('Error registering user:', error);
-        throw new Error('Failed to register user');
+        console.error('Registration error:', error);
+        throw error;
       }
     },
-    login: async (_, { email, password }, context) => {
+    login: async (_, { email, password, tenantId }, context) => {
       try {
+        // Extract tenantId from context or input
+        const resolvedTenantId = tenantId || extractTenantId(context.req);
+        validateTenantId(resolvedTenantId);
+        
         const mutation = `
           mutation {
-            login(email: "${email}", password: "${password}") {
+            login(email: "${email}", password: "${password}", tenantId: "${resolvedTenantId}") {
               token
               refreshToken
               user {
@@ -421,26 +406,18 @@ const resolvers = {
           }
         `;
 
-        const response = await fetch('http://user-service:5001', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ query: mutation })
+        const data = await callAuthService({
+          query: mutation,
+          context: { headers: {} } // No auth needed for login
         });
-
-        const data = await response.json();
-        if (data.errors) {
-          throw new Error(data.errors[0].message);
-        }
         
-        return data.data.login;
+        return data.login;
       } catch (error) {
-        console.error('Error logging in:', error);
-        throw new Error('Failed to login');
+        console.error('Login error:', error);
+        throw error;
       }
     },
-    refreshToken: async (_, { refreshToken }, context) => {
+    refreshToken: async (_, { refreshToken }) => {
       try {
         const mutation = `
           mutation {
@@ -451,23 +428,15 @@ const resolvers = {
           }
         `;
 
-        const response = await fetch('http://user-service:5001', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ query: mutation })
+        const data = await callAuthService({
+          query: mutation,
+          context: { headers: {} } // No auth needed for token refresh
         });
-
-        const data = await response.json();
-        if (data.errors) {
-          throw new Error(data.errors[0].message);
-        }
         
-        return data.data.refreshToken;
+        return data.refreshToken;
       } catch (error) {
-        console.error('Error refreshing token:', error);
-        throw new Error('Failed to refresh token');
+        console.error('Token refresh error:', error);
+        throw error;
       }
     },
     logout: async (_, { refreshToken }, context) => {
@@ -478,24 +447,15 @@ const resolvers = {
           }
         `;
 
-        const response = await fetch('http://user-service:5001', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': context.headers.authorization || ''
-          },
-          body: JSON.stringify({ query: mutation })
+        const data = await callAuthService({
+          query: mutation,
+          context
         });
-
-        const data = await response.json();
-        if (data.errors) {
-          throw new Error(data.errors[0].message);
-        }
         
-        return data.data.logout;
+        return data.logout;
       } catch (error) {
-        console.error('Error logging out:', error);
-        throw new Error('Failed to logout');
+        console.error('Logout error:', error);
+        throw error;
       }
     },
     logoutAll: async (_, __, context) => {
@@ -510,54 +470,41 @@ const resolvers = {
           }
         `;
 
-        const response = await fetch('http://user-service:5001', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': context.headers.authorization || ''
-          },
-          body: JSON.stringify({ query: mutation })
+        const data = await callAuthService({
+          query: mutation,
+          context
         });
-
-        const data = await response.json();
-        if (data.errors) {
-          throw new Error(data.errors[0].message);
-        }
         
-        return data.data.logoutAll;
+        return data.logoutAll;
       } catch (error) {
-        console.error('Error logging out from all devices:', error);
-        throw new Error('Failed to logout from all devices');
+        console.error('Logout all error:', error);
+        throw error;
       }
     },
-    requestPasswordReset: async (_, { email }) => {
+    requestPasswordReset: async (_, { email }, context) => {
       try {
+        // Extract tenantId from context
+        const tenantId = extractTenantId(context.req, context.user);
+        validateTenantId(tenantId);
+        
         const mutation = `
           mutation {
-            requestPasswordReset(email: "${email}") {
+            requestPasswordReset(email: "${email}", tenantId: "${tenantId}") {
               success
               message
             }
           }
         `;
 
-        const response = await fetch('http://user-service:5001', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ query: mutation })
+        const data = await callAuthService({
+          query: mutation,
+          context: { headers: {} } // No auth needed for password reset request
         });
-
-        const data = await response.json();
-        if (data.errors) {
-          throw new Error(data.errors[0].message);
-        }
         
-        return data.data.requestPasswordReset;
+        return data.requestPasswordReset;
       } catch (error) {
-        console.error('Error requesting password reset:', error);
-        throw new Error('Failed to request password reset');
+        console.error('Password reset request error:', error);
+        throw error;
       }
     },
     resetPassword: async (_, { token, newPassword }) => {
@@ -571,23 +518,15 @@ const resolvers = {
           }
         `;
 
-        const response = await fetch('http://user-service:5001', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ query: mutation })
+        const data = await callAuthService({
+          query: mutation,
+          context: { headers: {} } // No auth needed for password reset
         });
-
-        const data = await response.json();
-        if (data.errors) {
-          throw new Error(data.errors[0].message);
-        }
         
-        return data.data.resetPassword;
+        return data.resetPassword;
       } catch (error) {
-        console.error('Error resetting password:', error);
-        throw new Error('Failed to reset password');
+        console.error('Password reset error:', error);
+        throw error;
       }
     },
     verifyEmail: async (_, { token }) => {
@@ -601,148 +540,110 @@ const resolvers = {
           }
         `;
 
-        const response = await fetch('http://user-service:5001', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ query: mutation })
+        const data = await callAuthService({
+          query: mutation,
+          context: { headers: {} } // No auth needed for email verification
         });
-
-        const data = await response.json();
-        if (data.errors) {
-          throw new Error(data.errors[0].message);
-        }
         
-        return data.data.verifyEmail;
+        return data.verifyEmail;
       } catch (error) {
-        console.error('Error verifying email:', error);
-        throw new Error('Failed to verify email');
+        console.error('Email verification error:', error);
+        throw error;
       }
     },
-    resendVerification: async (_, { email }) => {
+    resendVerification: async (_, { email }, context) => {
       try {
+        // Extract tenantId from context
+        const tenantId = extractTenantId(context.req, context.user);
+        validateTenantId(tenantId);
+        
         const mutation = `
           mutation {
-            resendVerification(email: "${email}") {
+            resendVerification(email: "${email}", tenantId: "${tenantId}") {
               success
               message
             }
           }
         `;
 
-        const response = await fetch('http://user-service:5001', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ query: mutation })
+        const data = await callAuthService({
+          query: mutation,
+          context: { headers: {} } // No auth needed for resending verification
         });
-
-        const data = await response.json();
-        if (data.errors) {
-          throw new Error(data.errors[0].message);
-        }
         
-        return data.data.resendVerification;
+        return data.resendVerification;
       } catch (error) {
-        console.error('Error resending verification email:', error);
-        throw new Error('Failed to resend verification email');
+        console.error('Resend verification error:', error);
+        throw error;
       }
     }
   }
 };
 
-// Initialize Apollo Server
-const server = new ApolloServer({
-  typeDefs,
-  resolvers,
-  context: ({ req }) => {
-    // Get authenticated user from token
-    const user = authenticateToken(req);
-    
-    return {
-      user,
-      headers: req.headers
-    };
-  },
-  formatError: (err) => {
-    // Log errors for debugging
-    console.error('GraphQL Error:', err);
-    
-    // Return formatted error to client
-    return {
-      message: err.message,
-      code: err.extensions?.code || 'SERVER_ERROR',
-      path: err.path
-    };
-  },
-  introspection: config.graphql.introspection,
-  playground: config.graphql.playground,
-  debug: config.graphql.debug,
-  tracing: config.graphql.tracing
-});
-
-// Start the Apollo Server
+// Create Apollo Server
 async function startServer() {
-  // Start the server without waiting for Redis connection
-  // Redis connection will be attempted but won't block server startup
-  redisClient.on('connect', () => {
-    console.log('Connected to Redis successfully');
+  // Create Apollo Server
+  const server = new ApolloServer({
+    typeDefs,
+    resolvers,
+    context: ({ req }) => {
+      // Authenticate user from token
+      const user = authenticateToken(req);
+      // Extract tenant ID from various sources
+      const tenantId = extractTenantId(req, user);
+      
+      return {
+        user,
+        tenantId,
+        headers: req.headers,
+        req // Include the request for extracting information later
+      };
+    },
+    formatError: (error) => {
+      // Log the error for debugging
+      console.error('GraphQL Error:', error);
+      
+      // Return a standardized error format
+      return {
+        message: error.message,
+        path: error.path,
+        extensions: {
+          code: error.extensions?.code || 'INTERNAL_SERVER_ERROR',
+          // Avoid exposing internal error details in production
+          ...(config.server.isDev ? { stacktrace: error.extensions?.exception?.stacktrace } : {})
+        }
+      };
+    },
+    // Configure Apollo Server based on environment
+    introspection: config.graphql.introspection,
+    playground: config.graphql.playground,
+    debug: config.graphql.debug,
+    tracing: config.graphql.tracing,
   });
 
+  // Apply middleware to the express app
   await server.start();
-  
-  // Apply middleware to Express
-  server.applyMiddleware({ 
+  server.applyMiddleware({
     app,
     path: '/graphql',
-    cors: corsOptions
+    cors: false // Already handled by express cors middleware
   });
-  
-  // Basic routes
-  app.get('/', (req, res) => {
-    res.send('Welcome to Aesthenda API Gateway');
-  });
-  
-  app.get('/health', (req, res) => {
-    res.status(200).json({ status: 'healthy' });
-  });
-
-  // Use role management routes
-  app.use(roleRoutes);
 
   // Start the server
-  const PORT = config.server.port;
-  app.listen(PORT, () => {
-    console.log(`🚀 API Gateway ready with authentication at http://localhost:${PORT}${server.graphqlPath}`);
-    console.log(`OAuth endpoints available at http://localhost:${PORT}/auth/google and http://localhost:${PORT}/auth/facebook`);
-    console.log(`Rate limiting enabled with Redis at ${config.redis.url}`);
-    console.log(`CORS enabled for: ${config.server.corsOrigins.join(', ')}`);
+  const port = config.server.port;
+  app.listen(port, () => {
+    console.log(`API Gateway running at http://localhost:${port}${server.graphqlPath}`);
+    console.log(`Environment: ${config.server.env}`);
   });
 }
 
-// Handle graceful shutdown
-process.on('SIGTERM', async () => {
-  console.log('SIGTERM received, shutting down gracefully');
-  try {
-    await redisClient.quit();
-  } catch (err) {
-    console.error('Error closing Redis connection:', err);
-  }
-  process.exit(0);
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (error) => {
+  console.error('Unhandled promise rejection:', error);
 });
 
-process.on('SIGINT', async () => {
-  console.log('SIGINT received, shutting down gracefully');
-  try {
-    await redisClient.quit();
-  } catch (err) {
-    console.error('Error closing Redis connection:', err);
-  }
-  process.exit(0);
-});
-
-startServer().catch(err => {
-  console.error('Error starting server:', err);
+// Start the server
+startServer().catch(error => {
+  console.error('Failed to start server:', error);
+  process.exit(1);
 });

@@ -1,0 +1,16 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# 	•	Tenant Isolation:
+	•	Every data model (users, appointments, resources, etc.) should have a tenantId field.
+	•	Enforce tenant filtering in every query and mutation via middleware or within resolvers.
+	•	Role-Based Access Control (RBAC):
+	•	Define granular roles and permissions for each tenant (e.g., salon_admin, stylist, front_desk).
+	•	Make sure each service validates not only user identity but also that actions are permitted within the tenant’s context.
+
+
+- You can @ files here
+- You can use markdown but dont have to

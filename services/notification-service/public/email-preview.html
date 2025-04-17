@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Template Preview Tool</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+        .preview-container {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .preview-frame {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+        }
+        .color-preview {
+            width: 25px;
+            height: 25px;
+            border-radius: 4px;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 5px;
+        }
+        .responsive-controls {
+            margin-bottom: 15px;
+        }
+        .responsive-controls button {
+            margin-right: 5px;
+        }
+        .auth-controls {
+            text-align: right;
+            margin-bottom: 20px;
+        }
+        .user-email {
+            display: inline-block;
+            margin-right: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Email Template Preview Tool</h1>
+            <div class="auth-controls">
+                <span id="userEmail" class="user-email text-muted"></span>
+                <button id="logoutButton" class="btn btn-sm btn-outline-secondary">Logout</button>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-header">Template Selection</div>
+                    <div class="card-body">
+                        <select id="templateSelect" class="form-select mb-3">
+                            <option value="" disabled selected>Select a template</option>
+                            <!-- Templates will be loaded dynamically -->
+                        </select>
+                        <p id="templateDescription" class="text-muted"></p>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header">Tenant Branding</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="tenantId" class="form-label">Tenant ID</label>
+                            <input type="text" class="form-control" id="tenantId" value="tenant123">
+                        </div>
+                        <div class="mb-3">
+                            <label for="tenantName" class="form-label">Tenant Name</label>
+                            <input type="text" class="form-control" id="tenantName" value="Aesthenda Salon & Spa">
+                        </div>
+                        <div class="mb-3">
+                            <label for="primaryColor" class="form-label">Primary Color</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <div id="colorPreview" class="color-preview" style="background-color: #4A90E2;"></div>
+                                </span>
+                                <input type="text" class="form-control" id="primaryColor" value="#4A90E2">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="logoUrl" class="form-label">Logo URL</label>
+                            <input type="text" class="form-control" id="logoUrl" value="">
+                            <div class="form-text">Leave empty to use tenant name as text</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="tenantAddress" class="form-label">Address</label>
+                            <input type="text" class="form-control" id="tenantAddress" value="123 Main Street, City">
+                        </div>
+                        <div class="mb-3">
+                            <label for="tenantPhone" class="form-label">Phone</label>
+                            <input type="text" class="form-control" id="tenantPhone" value="(555) 123-4567">
+                        </div>
+                        <div class="mb-3">
+                            <label for="tenantEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="tenantEmail" value="contact@example.com">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header">Appointment Details</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="clientName" class="form-label">Client Name</label>
+                            <input type="text" class="form-control" id="clientName" value="Jane Smith">
+                        </div>
+                        <div class="mb-3">
+                            <label for="stylistName" class="form-label">Stylist Name</label>
+                            <input type="text" class="form-control" id="stylistName" value="Michael Johnson">
+                        </div>
+                        <div class="mb-3">
+                            <label for="date" class="form-label">Date</label>
+                            <input type="date" class="form-control" id="date" value="2023-08-15">
+                        </div>
+                        <div class="mb-3">
+                            <label for="time" class="form-label">Time</label>
+                            <input type="time" class="form-control" id="time" value="10:00">
+                        </div>
+                        <div class="mb-3">
+                            <label for="services" class="form-label">Services</label>
+                            <input type="text" class="form-control" id="services" value="Haircut, Color, Blowout">
+                        </div>
+                        <div class="mb-3">
+                            <label for="totalPrice" class="form-label">Total Price</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="text" class="form-control" id="totalPrice" value="120.00">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="dynamicFields" class="card mb-4 d-none">
+                    <!-- Dynamic fields based on template type will be inserted here -->
+                </div>
+                
+                <button id="previewButton" class="btn btn-primary w-100">Generate Preview</button>
+            </div>
+            
+            <div class="col-md-8">
+                <div class="responsive-controls">
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-outline-secondary" data-width="375">Mobile</button>
+                        <button class="btn btn-outline-secondary" data-width="768">Tablet</button>
+                        <button class="btn btn-outline-secondary active" data-width="100%">Desktop</button>
+                    </div>
+                </div>
+                
+                <div class="preview-container">
+                    <iframe id="previewFrame" class="preview-frame"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // API endpoint
+            const apiURL = location.protocol + '//' + location.hostname + ':5003';
+            
+            // Check authentication
+            const token = localStorage.getItem('preview_token');
+            if (!token) {
+                // No token found, redirect to login
+                window.location.href = '/preview-login.html';
+                return;
+            }
+            
+            // Display user info
+            fetch(`${apiURL}/api/preview/user-info`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Authentication failed');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.user && data.user.email) {
+                    document.getElementById('userEmail').textContent = data.user.email;
+                    
+                    // If user has a specific tenant, set it
+                    if (data.user.tenantId && data.user.tenantId !== 'system') {
+                        document.getElementById('tenantId').value = data.user.tenantId;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching user info:', error);
+                localStorage.removeItem('preview_token');
+                window.location.href = '/preview-login.html';
+            });
+            
+            // Logout button
+            document.getElementById('logoutButton').addEventListener('click', function() {
+                localStorage.removeItem('preview_token');
+                window.location.href = '/preview-login.html';
+            });
+            
+            // Fetch available templates with authentication
+            fetch(`${apiURL}/api/preview/templates`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        // Unauthorized, redirect to login
+                        localStorage.removeItem('preview_token');
+                        window.location.href = '/preview-login.html';
+                        throw new Error('Authentication required');
+                    }
+                    throw new Error('Failed to fetch templates');
+                }
+                return response.json();
+            })
+            .then(data => {
+                const templateSelect = document.getElementById('templateSelect');
+                
+                data.templates.forEach(template => {
+                    const option = document.createElement('option');
+                    option.value = template.id;
+                    option.textContent = template.name;
+                    option.dataset.description = template.description;
+                    templateSelect.appendChild(option);
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching templates:', error);
+                if (error.message !== 'Authentication required') {
+                    alert('Failed to load templates. Please check your connection.');
+                }
+            });
+                
+            // Template selection change
+            document.getElementById('templateSelect').addEventListener('change', function() {
+                // Update description
+                const selected = this.options[this.selectedIndex];
+                document.getElementById('templateDescription').textContent = selected.dataset.description;
+                
+                // Show/hide dynamic fields based on template type
+                const dynamicFields = document.getElementById('dynamicFields');
+                dynamicFields.innerHTML = '';
+                
+                if (this.value === 'appointment-cancelled') {
+                    // Add reason field for cancelled appointments
+                    dynamicFields.classList.remove('d-none');
+                    dynamicFields.innerHTML = `
+                        <div class="card-header">Template-Specific Fields</div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="reason" class="form-label">Cancellation Reason</label>
+                                <input type="text" class="form-control" id="reason" value="Stylist unavailable">
+                            </div>
+                        </div>
+                    `;
+                } else if (this.value === 'appointment-updated') {
+                    // Add changes for updated appointments
+                    dynamicFields.classList.remove('d-none');
+                    dynamicFields.innerHTML = `
+                        <div class="card-header">Template-Specific Fields</div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">Changes Made</label>
+                                <div id="changesContainer">
+                                    <div class="input-group mb-2">
+                                        <input type="text" class="form-control change-item" value="Time changed from 9:00 AM to 10:00 AM">
+                                        <button class="btn btn-outline-danger remove-change">×</button>
+                                    </div>
+                                    <div class="input-group mb-2">
+                                        <input type="text" class="form-control change-item" value="Added Blowout service">
+                                        <button class="btn btn-outline-danger remove-change">×</button>
+                                    </div>
+                                </div>
+                                <button id="addChange" class="btn btn-sm btn-outline-secondary mt-2">Add Change</button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Add event listeners for changes
+                    document.getElementById('addChange').addEventListener('click', function() {
+                        const container = document.getElementById('changesContainer');
+                        const div = document.createElement('div');
+                        div.className = 'input-group mb-2';
+                        div.innerHTML = `
+                            <input type="text" class="form-control change-item" value="">
+                            <button class="btn btn-outline-danger remove-change">×</button>
+                        `;
+                        container.appendChild(div);
+                        
+                        // Add event listener to the new remove button
+                        div.querySelector('.remove-change').addEventListener('click', function() {
+                            container.removeChild(div);
+                        });
+                    });
+                    
+                    // Add event listeners for existing remove buttons
+                    document.querySelectorAll('.remove-change').forEach(button => {
+                        button.addEventListener('click', function() {
+                            const container = document.getElementById('changesContainer');
+                            container.removeChild(this.parentNode);
+                        });
+                    });
+                } else if (this.value === 'appointment-reminder') {
+                    // Add special instructions for reminders
+                    dynamicFields.classList.remove('d-none');
+                    dynamicFields.innerHTML = `
+                        <div class="card-header">Template-Specific Fields</div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="specialInstructions" class="form-label">Special Instructions</label>
+                                <textarea class="form-control" id="specialInstructions" rows="3">Please arrive 10 minutes early to complete paperwork.</textarea>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    dynamicFields.classList.add('d-none');
+                }
+            });
+            
+            // Color preview
+            document.getElementById('primaryColor').addEventListener('input', function() {
+                document.getElementById('colorPreview').style.backgroundColor = this.value;
+            });
+            
+            // Responsive controls
+            document.querySelectorAll('.responsive-controls button').forEach(button => {
+                button.addEventListener('click', function() {
+                    // Update active state
+                    document.querySelectorAll('.responsive-controls button').forEach(b => {
+                        b.classList.remove('active');
+                    });
+                    this.classList.add('active');
+                    
+                    // Update preview width
+                    const width = this.dataset.width;
+                    document.getElementById('previewFrame').style.width = width;
+                });
+            });
+            
+            // Preview button
+            document.getElementById('previewButton').addEventListener('click', function() {
+                const templateType = document.getElementById('templateSelect').value;
+                if (!templateType) {
+                    alert('Please select a template type');
+                    return;
+                }
+                
+                // Build the data object
+                const data = {
+                    tenantId: document.getElementById('tenantId').value,
+                    tenantName: document.getElementById('tenantName').value,
+                    logoUrl: document.getElementById('logoUrl').value,
+                    primaryColor: document.getElementById('primaryColor').value,
+                    clientName: document.getElementById('clientName').value,
+                    stylistName: document.getElementById('stylistName').value,
+                    date: document.getElementById('date').value + 'T' + document.getElementById('time').value + ':00Z',
+                    time: document.getElementById('time').value,
+                    services: document.getElementById('services').value,
+                    totalPrice: document.getElementById('totalPrice').value,
+                    tenantAddress: document.getElementById('tenantAddress').value,
+                    tenantPhone: document.getElementById('tenantPhone').value,
+                    tenantEmail: document.getElementById('tenantEmail').value
+                };
+                
+                // Add template-specific fields
+                if (templateType === 'appointment-cancelled' && document.getElementById('reason')) {
+                    data.reason = document.getElementById('reason').value;
+                } else if (templateType === 'appointment-updated') {
+                    data.changes = Array.from(document.querySelectorAll('.change-item'))
+                        .map(input => input.value)
+                        .filter(value => value.trim() !== '');
+                } else if (templateType === 'appointment-reminder' && document.getElementById('specialInstructions')) {
+                    data.specialInstructions = document.getElementById('specialInstructions').value;
+                }
+                
+                // Call the API with authentication
+                fetch(`${apiURL}/api/preview/email`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        templateType,
+                        data
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        if (response.status === 401) {
+                            // Unauthorized, redirect to login
+                            localStorage.removeItem('preview_token');
+                            window.location.href = '/preview-login.html';
+                            throw new Error('Authentication required');
+                        }
+                        throw new Error('Failed to generate preview');
+                    }
+                    return response.json();
+                })
+                .then(result => {
+                    if (result.success) {
+                        // Update the preview iframe
+                        const iframe = document.getElementById('previewFrame');
+                        const doc = iframe.contentDocument || iframe.contentWindow.document;
+                        doc.open();
+                        doc.write(result.html);
+                        doc.close();
+                    } else {
+                        alert('Error: ' + (result.error || 'Failed to generate preview'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error generating preview:', error);
+                    if (error.message !== 'Authentication required') {
+                        alert('Failed to generate preview. Please check your connection.');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html> 
